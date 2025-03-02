@@ -1,10 +1,11 @@
 mod game;
 
-use game::{Game, GameBuilder, PlayContent, Player, Position};
+use game::{Game, GameBuilder, Inning, PlayContent, PlayType, Player, Position, TopBottom};
 use once_cell::sync::Lazy;
 use pyo3::prelude::{PyResult, pyclass, pymethods};
 use regex::Regex;
 use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 use std::collections::HashSet;
 
 #[pyclass(eq, eq_int)]
@@ -40,53 +41,6 @@ enum PlaySection {
     GameEnd,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum PlayType {
-    Groundout,
-    BuntGroundout,
-    Strikeout,
-    Lineout,
-    BuntLineout,
-    Flyout,
-    PopOut,
-    BuntPopOut,
-    Forceout,
-    FieldersChoiceOut,
-    DoublePlay,
-    TriplePlay,
-    RunnerDoublePlay,
-    RunnerTriplePlay,
-    GroundedIntoDoublePlay,
-    StrikeoutDoublePlay,
-    Pickoff,
-    PickoffError,
-    CaughtStealing,
-    PickoffCaughtStealing,
-    WildPitch,
-    RunnerOut,
-    FieldOut,
-    BatterOut,
-    Balk,
-    PassedBall,
-    Error,
-    Single,
-    Double,
-    Triple,
-    HomeRun,
-    Walk,
-    IntentWalk,
-    HitByPitch,
-    FieldersChoice,
-    CatcherInterference,
-    StolenBase,
-    SacFly,
-    SacFlyDoublePlay,
-    SacBunt,
-    SacBuntDoublePlay,
-    FieldError,
-    GameAdvisory,
-}
-
 #[derive(Debug, Clone, Copy, Hash)]
 struct Play {
     play_type: PlayType,
@@ -118,6 +72,19 @@ static ALL_POSITIONS: Lazy<String> = Lazy::new(|| {
 static TEAM_SECTION_PLAYER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^\[(?P<position>{})\] (?P<player_name>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)",
     ALL_POSITIONS.as_str(),
+).as_str()).unwrap());
+
+static PLAY_SECTION_INNING_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[INNING\] (?P<number>\d+) (?P<top_bottom>top|bottom)").unwrap());
+static ALL_PLAY_TYPES: Lazy<String> = Lazy::new(|| {
+    let mut play_types = Vec::new();
+    for play_type in PlayType::iter() {
+        play_types.push(play_type.to_string());
+    }
+    play_types.join("|")
+});
+static PLAY_SECTION_PLAY_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
+    r"^\[PLAY\] (?P<play_type>{})",
+    ALL_PLAY_TYPES.as_str(),
 ).as_str()).unwrap());
 
 #[pyclass]
@@ -158,7 +125,6 @@ impl Parser {
 
                     self.consume_input(game_pk_match.end());
                     self.possible_sections = HashSet::from([GameSection::Context(ContextSection::Date)]);
-                    println!("Set possible sections to {:?}", self.possible_sections);
 
                     return Ok((true, HashSet::new()));
                 }
@@ -295,6 +261,46 @@ impl Parser {
                 if self.input_buffer.starts_with("[GAME_START]") {
                     self.consume_input("[GAME_START]".len());
                     self.possible_sections = HashSet::from([GameSection::Plays(PlaySection::Inning)]);
+
+                    return Ok((true, HashSet::new()));
+                }
+            },
+            PlaySection::Inning => {
+                println!("Parsing inning section...");
+
+                let captures = PLAY_SECTION_INNING_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let number_match = captures.name("number").unwrap();
+                    let number = number_match.as_str().parse::<u64>().unwrap();
+
+                    let top_bottom_match = captures.name("top_bottom").unwrap();
+                    let top_bottom = top_bottom_match.as_str().parse::<TopBottom>().unwrap();
+
+                    let inning = Inning {
+                        number,
+                        top_bottom,
+                    };
+
+                    self.game_builder.play_builder.set_inning(inning);
+
+                    self.consume_input(top_bottom_match.end());
+                    self.possible_sections = HashSet::from([GameSection::Plays(PlaySection::Play)]);
+
+                    return Ok((true, HashSet::new()));
+                }
+            },
+            PlaySection::Play => {
+                println!("Parsing play section...");
+
+                let captures = PLAY_SECTION_PLAY_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let play_type_match = captures.name("play_type").unwrap();
+                    let play_type = play_type_match.as_str().parse::<PlayType>().unwrap();
+
+                    self.game_builder.play_builder.set_play_type(play_type);
+
+                    self.consume_input(play_type_match.end());
+                    self.possible_sections = HashSet::from([GameSection::Plays(PlaySection::Base)]);
 
                     return Ok((true, HashSet::new()));
                 }
