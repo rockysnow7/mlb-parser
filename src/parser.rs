@@ -90,6 +90,7 @@ static PLAY_SECTION_BASE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[BASE\
 static PLAY_SECTION_BATTER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[BATTER\] (?P<batter>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
 static PLAY_SECTION_PITCHER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[PITCHER\] (?P<pitcher>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
 static PLAY_SECTION_CATCHER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[CATCHER\] (?P<catcher>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
+static PLAY_SECTION_FIELDERS_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[FIELDERS\] (?P<fielders>([a-zA-ZÀ-ÖØ-öø-ÿ.' ]+, )*[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
 static PLAY_SECTION_RUNNER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[RUNNER\] (?P<runner>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
 static PLAY_SECTION_SCORING_RUNNER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[SCORING_RUNNER\] (?P<scoring_runner>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
 
@@ -98,6 +99,7 @@ pub struct Parser {
     input_buffer: String,
     possible_sections: HashSet<GameSection>,
     game_builder: GameBuilder,
+    finished: bool,
 }
 
 #[pymethods]
@@ -108,6 +110,7 @@ impl Parser {
             input_buffer: String::new(),
             possible_sections: HashSet::from([GameSection::Context(ContextSection::Game)]),
             game_builder: GameBuilder::new(),
+            finished: false,
         }
     }
 
@@ -490,7 +493,38 @@ impl Parser {
                     }
                 }
             },
-            PlaySection::Fielders => todo!(),
+            PlaySection::Fielders => {
+                println!("Parsing fielders section...");
+
+                let captures = PLAY_SECTION_FIELDERS_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let fielders_match = captures.name("fielders").unwrap();
+                    let fielders = fielders_match.as_str()
+                        .to_string()
+                        .split(", ")
+                        .map(|s| s.trim().to_string())
+                        .collect::<Vec<String>>();
+
+                    for fielder in fielders {
+                        self.game_builder.play_builder.add_fielder(fielder);
+                    }
+
+                    self.consume_input(fielders_match.end());
+
+                    let play_type = self.game_builder.play_builder.play_type.unwrap();
+                    if play_type.requires_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Runner),
+                        ]);
+                    } else if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
+                    } else {
+                        unreachable!();
+                    }
+                }
+            },
             PlaySection::Runner => {
                 println!("Parsing runner section...");
 
@@ -532,7 +566,16 @@ impl Parser {
                 }
             },
             PlaySection::Movements => todo!(),
-            PlaySection::GameEnd => todo!(),
+            PlaySection::GameEnd => {
+                println!("Parsing game end section...");
+
+                if self.input_buffer.starts_with("[GAME_END]") {
+                    self.consume_input("[GAME_END]".len());
+                    self.finished = true;
+                }
+
+                return Ok((true, HashSet::new()));
+            },
         }
 
         Ok((false, HashSet::new()))
@@ -560,6 +603,10 @@ impl Parser {
         self.input_buffer.push_str(input);
 
         loop {
+            if self.finished {
+                return Ok(HashSet::new());
+            }
+
             let (success, valid_next_chars) = self.parse_input_buffer()?;
 
             if !success {
