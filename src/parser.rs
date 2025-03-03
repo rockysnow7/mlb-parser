@@ -307,14 +307,50 @@ impl Parser {
                             GameSection::Plays(PlaySection::Inning),
                             GameSection::Plays(PlaySection::GameEnd),
                         ]);
+                    } else if play_type.requires_base() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Base),
+                        ]);
+                    } else if play_type.requires_batter() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Batter),
+                        ]);
+                    } else if play_type.requires_pitcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Pitcher),
+                        ]);
+                    } else if play_type.requires_catcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Catcher),
+                        ]);
+                    } else if play_type.requires_fielders() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Fielders),
+                        ]);
+                    } else if play_type.requires_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Runner),
+                        ]);
+                    } else if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
                     } else {
-                        todo!()
+                        unreachable!()
                     }
 
                     return Ok((true, HashSet::new()));
                 }
             },
-            _ => todo!(),
+            PlaySection::Base => todo!(),
+            PlaySection::Batter => todo!(),
+            PlaySection::Pitcher => todo!(),
+            PlaySection::Catcher => todo!(),
+            PlaySection::Fielders => todo!(),
+            PlaySection::Runner => todo!(),
+            PlaySection::ScoringRunner => todo!(),
+            PlaySection::Movements => todo!(),
+            PlaySection::GameEnd => todo!(),
         }
 
         Ok((false, HashSet::new()))
