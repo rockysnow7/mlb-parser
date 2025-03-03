@@ -132,6 +132,20 @@ pub enum Base {
     Third,
 }
 
+impl std::str::FromStr for Base {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Base::First),
+            "2" => Ok(Base::Second),
+            "3" => Ok(Base::Third),
+            "4" | "home" => Ok(Base::Home),
+            _ => Err(format!("Invalid base: {}", s)),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum PlayContent {
     Groundout {

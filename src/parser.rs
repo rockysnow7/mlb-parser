@@ -1,6 +1,6 @@
 mod game;
 
-use game::{Game, GameBuilder, Inning, PlayContent, PlayType, Player, Position, TopBottom};
+use game::{Base, Game, GameBuilder, Inning, PlayContent, PlayType, Player, Position, TopBottom};
 use once_cell::sync::Lazy;
 use pyo3::prelude::{PyResult, pyclass, pymethods};
 use regex::Regex;
@@ -86,6 +86,12 @@ static PLAY_SECTION_PLAY_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^\[PLAY\] (?P<play_type>{})",
     ALL_PLAY_TYPES.as_str(),
 ).as_str()).unwrap());
+static PLAY_SECTION_BASE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[BASE\] (?P<base>1|2|3|4|home)").unwrap());
+static PLAY_SECTION_BATTER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[BATTER\] (?P<batter>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
+static PLAY_SECTION_PITCHER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[PITCHER\] (?P<pitcher>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
+static PLAY_SECTION_CATCHER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[CATCHER\] (?P<catcher>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
+static PLAY_SECTION_RUNNER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[RUNNER\] (?P<runner>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
+static PLAY_SECTION_SCORING_RUNNER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[SCORING_RUNNER\] (?P<scoring_runner>[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+)").unwrap());
 
 #[pyclass]
 pub struct Parser {
@@ -336,19 +342,195 @@ impl Parser {
                             GameSection::Plays(PlaySection::ScoringRunner),
                         ]);
                     } else {
-                        unreachable!()
+                        unreachable!();
                     }
+                }
+            },
+            PlaySection::Base => {
+                println!("Parsing base section...");
+
+                let captures = PLAY_SECTION_BASE_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let base_match = captures.name("base").unwrap();
+                    let base = base_match.as_str().parse::<Base>().unwrap();
+
+                    self.game_builder.play_builder.set_base(base);
+
+                    self.consume_input(base_match.end());
+
+                    let play_type = self.game_builder.play_builder.play_type.unwrap();
+                    if play_type.requires_batter() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Batter),
+                        ]);
+                    } else if play_type.requires_pitcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Pitcher),
+                        ]);
+                    } else if play_type.requires_catcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Catcher),
+                        ]);
+                    } else if play_type.requires_fielders() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Fielders),
+                        ]);
+                    } else if play_type.requires_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Runner),
+                        ]);
+                    } else if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
+                    } else {
+                        unreachable!();
+                    }
+                }
+            },
+            PlaySection::Batter => {
+                println!("Parsing batter section...");
+
+                let captures = PLAY_SECTION_BATTER_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let batter_match = captures.name("batter").unwrap();
+                    let batter = batter_match.as_str().trim().to_string();
+
+                    self.game_builder.play_builder.set_batter(batter);
+
+                    self.consume_input(batter_match.end());
+
+                    let play_type = self.game_builder.play_builder.play_type.unwrap();
+                    if play_type.requires_pitcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Pitcher),
+                        ]);
+                    } else if play_type.requires_catcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Catcher),
+                        ]);
+                    } else if play_type.requires_fielders() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Fielders),
+                        ]);
+                    } else if play_type.requires_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Runner),
+                        ]);
+                    } else if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
+                    } else {
+                        unreachable!();
+                    }
+                }
+            },
+            PlaySection::Pitcher => {
+                println!("Parsing pitcher section...");
+
+                let captures = PLAY_SECTION_PITCHER_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let pitcher_match = captures.name("pitcher").unwrap();
+                    let pitcher = pitcher_match.as_str().trim().to_string();
+
+                    self.game_builder.play_builder.set_pitcher(pitcher);
+
+                    self.consume_input(pitcher_match.end());
+
+                    let play_type = self.game_builder.play_builder.play_type.unwrap();
+                    if play_type.requires_catcher() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Catcher),
+                        ]);
+                    } else if play_type.requires_fielders() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Fielders),
+                        ]);
+                    } else if play_type.requires_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Runner),
+                        ]);
+                    } else if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
+                    } else {
+                        unreachable!();
+                    }
+                }
+            },
+            PlaySection::Catcher => {
+                println!("Parsing catcher section...");
+
+                let captures = PLAY_SECTION_CATCHER_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let catcher_match = captures.name("catcher").unwrap();
+                    let catcher = catcher_match.as_str().trim().to_string();
+
+                    self.game_builder.play_builder.set_catcher(catcher);
+
+                    self.consume_input(catcher_match.end());
+
+                    let play_type = self.game_builder.play_builder.play_type.unwrap();
+                    if play_type.requires_fielders() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Fielders),
+                        ]);
+                    } else if play_type.requires_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Runner),
+                        ]);
+                    } else if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
+                    } else {
+                        unreachable!();
+                    }
+                }
+            },
+            PlaySection::Fielders => todo!(),
+            PlaySection::Runner => {
+                println!("Parsing runner section...");
+
+                let captures = PLAY_SECTION_RUNNER_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let runner_match = captures.name("runner").unwrap();
+                    let runner = runner_match.as_str().trim().to_string();
+
+                    self.game_builder.play_builder.set_runner(runner);
+
+                    self.consume_input(runner_match.end());
+
+                    let play_type = self.game_builder.play_builder.play_type.unwrap();
+                    if play_type.requires_scoring_runner() {
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::ScoringRunner),
+                        ]);
+                    } else {
+                        unreachable!();
+                    }
+                }
+            },
+            PlaySection::ScoringRunner => {
+                println!("Parsing scoring runner section...");
+
+                let captures = PLAY_SECTION_SCORING_RUNNER_REGEX.captures(&self.input_buffer);
+                if let Some(captures) = captures {
+                    let scoring_runner_match = captures.name("scoring_runner").unwrap();
+                    let scoring_runner = scoring_runner_match.as_str().trim().to_string();
+
+                    self.game_builder.play_builder.set_scoring_runner(scoring_runner);
+
+                    self.consume_input(scoring_runner_match.end());
+                    self.possible_sections = HashSet::from([
+                        GameSection::Plays(PlaySection::Movements),
+                    ]);
 
                     return Ok((true, HashSet::new()));
                 }
             },
-            PlaySection::Base => todo!(),
-            PlaySection::Batter => todo!(),
-            PlaySection::Pitcher => todo!(),
-            PlaySection::Catcher => todo!(),
-            PlaySection::Fielders => todo!(),
-            PlaySection::Runner => todo!(),
-            PlaySection::ScoringRunner => todo!(),
             PlaySection::Movements => todo!(),
             PlaySection::GameEnd => todo!(),
         }
