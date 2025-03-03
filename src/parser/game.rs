@@ -335,7 +335,7 @@ pub enum PlayContent {
     GameAdvisory,
 }
 
-#[derive(Clone, Copy, Debug, Hash, EnumIter)]
+#[derive(Clone, Copy, Debug, Hash, EnumIter, PartialEq, Eq)]
 pub enum PlayType {
     Groundout,
     BuntGroundout,
@@ -1043,7 +1043,7 @@ impl GameBuilder {
         self
     }
 
-    pub fn add_play(&mut self) -> Option<&mut Self> {
+    pub fn build_play(&mut self) -> Option<&mut Self> {
         self.plays.push(self.play_builder.build()?);
         self.reset_play_builder();
 

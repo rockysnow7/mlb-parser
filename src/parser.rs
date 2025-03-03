@@ -300,7 +300,16 @@ impl Parser {
                     self.game_builder.play_builder.set_play_type(play_type);
 
                     self.consume_input(play_type_match.end());
-                    self.possible_sections = HashSet::from([GameSection::Plays(PlaySection::Base)]);
+
+                    if play_type == PlayType::GameAdvisory {
+                        self.game_builder.build_play();
+                        self.possible_sections = HashSet::from([
+                            GameSection::Plays(PlaySection::Inning),
+                            GameSection::Plays(PlaySection::GameEnd),
+                        ]);
+                    } else {
+                        todo!()
+                    }
 
                     return Ok((true, HashSet::new()));
                 }
