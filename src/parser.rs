@@ -1,11 +1,10 @@
 mod game;
 
-use game::{Base, Game, GameBuilder, Inning, PlayContent, PlayType, Player, Position, TopBottom};
+use game::{Base, Game, GameBuilder, Inning, PlayType, Player, Position, TopBottom};
 use once_cell::sync::Lazy;
 use pyo3::prelude::{PyResult, pyclass, pymethods};
 use regex::Regex;
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 use std::collections::HashSet;
 
 #[pyclass(eq, eq_int)]
@@ -612,6 +611,15 @@ impl Parser {
             if !success {
                 return Ok(valid_next_chars);
             }
+        }
+    }
+
+    /// Return the completed game if the parser is finished.
+    pub fn complete(&self) -> Option<Game> {
+        if self.finished {
+            self.game_builder.build()
+        } else {
+            None
         }
     }
 }

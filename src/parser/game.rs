@@ -1,3 +1,4 @@
+use pyo3::pyclass;
 use strum_macros::EnumIter;
 
 pub struct Weather {
@@ -963,6 +964,7 @@ impl PlayBuilder {
     }
 }
 
+#[pyclass]
 pub struct Game {
     context: Context,
     home_team: Team,
