@@ -89,19 +89,19 @@ impl std::str::FromStr for Position {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Player {
     pub position: Position,
     pub name: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Team {
     team_id: u64,
     players: Vec<Player>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum TopBottom {
     Top,
     Bottom,
@@ -119,13 +119,13 @@ impl std::str::FromStr for TopBottom {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Inning {
     pub number: u64,
     pub top_bottom: TopBottom,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Base {
     Home,
     First,
@@ -147,7 +147,7 @@ impl std::str::FromStr for Base {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum PlayContent {
     Groundout {
         batter: String,
@@ -658,19 +658,61 @@ impl PlayType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Movement {
     runner: String,
-    from: String,
-    to: String,
+    from: Base,
+    to: Base,
     out: bool,
 }
 
-#[derive(Clone)]
+pub struct MovementBuilder {
+    runner: Option<String>,
+    from: Option<Base>,
+    to: Option<Base>,
+    out: Option<bool>,
+}
+
+impl MovementBuilder {
+    pub fn new() -> Self {
+        Self { runner: None, from: None, to: None, out: None }
+    }
+
+    pub fn set_runner(&mut self, runner: String) -> &mut Self {
+        self.runner = Some(runner);
+        self
+    }
+
+    pub fn set_from(&mut self, from: Base) -> &mut Self {
+        self.from = Some(from);
+        self
+    }
+
+    pub fn set_to(&mut self, to: Base) -> &mut Self {
+        self.to = Some(to);
+        self
+    }
+
+    pub fn set_out(&mut self, out: bool) -> &mut Self {
+        self.out = Some(out);
+        self
+    }
+
+    pub fn build(&self) -> Option<Movement> {
+        Some(Movement {
+            runner: self.runner.clone()?,
+            from: self.from.clone()?,
+            to: self.to.clone()?,
+            out: self.out.clone()?,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Play {
-    inning: Inning,
-    play_content: PlayContent,
-    movements: Vec<Movement>,
+    pub inning: Inning,
+    pub play_content: PlayContent,
+    pub movements: Vec<Movement>,
 }
 
 pub struct PlayBuilder {
@@ -683,6 +725,7 @@ pub struct PlayBuilder {
     pub fielders: Vec<String>,
     pub runner: Option<String>,
     pub scoring_runner: Option<String>,
+    pub movement_builder: MovementBuilder,
     pub movements: Vec<Movement>,
 }
 
@@ -698,6 +741,7 @@ impl PlayBuilder {
             fielders: Vec::new(),
             runner: None,
             scoring_runner: None,
+            movement_builder: MovementBuilder::new(),
             movements: Vec::new(),
         }
     }
@@ -747,9 +791,16 @@ impl PlayBuilder {
         self
     }
 
-    pub fn add_movement(&mut self, runner: String, from: String, to: String, out: bool) -> &mut Self {
-        self.movements.push(Movement { runner, from, to, out });
+    pub fn reset_movement_builder(&mut self) -> &mut Self {
+        self.movement_builder = MovementBuilder::new();
         self
+    }
+
+    pub fn build_movement(&mut self) -> Option<&mut Self> {
+        self.movements.push(self.movement_builder.build()?);
+        self.reset_movement_builder();
+
+        Some(self)
     }
 
     pub fn build(&self) -> Option<Play> {
