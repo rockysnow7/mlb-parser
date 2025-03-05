@@ -1,12 +1,14 @@
 use pyo3::pyclass;
 use strum_macros::EnumIter;
 
+#[derive(Debug)]
 pub struct Weather {
     condition: String,
     temperature: u64,
     wind_speed: u64,
 }
 
+#[derive(Debug)]
 pub struct Context {
     game_pk: u64,
     date: String,
@@ -101,7 +103,7 @@ pub struct Team {
     players: Vec<Player>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TopBottom {
     Top,
     Bottom,
@@ -119,13 +121,13 @@ impl std::str::FromStr for TopBottom {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Inning {
     pub number: u64,
     pub top_bottom: TopBottom,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Base {
     Home,
     First,
@@ -147,7 +149,7 @@ impl std::str::FromStr for Base {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlayContent {
     Groundout {
         batter: String,
@@ -658,12 +660,12 @@ impl PlayType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Movement {
-    runner: String,
-    from: Base,
-    to: Base,
-    out: bool,
+    pub runner: String,
+    pub from: Base,
+    pub to: Base,
+    pub out: bool,
 }
 
 pub struct MovementBuilder {
@@ -698,12 +700,12 @@ impl MovementBuilder {
         self
     }
 
-    pub fn build(&self) -> Option<Movement> {
-        Some(Movement {
-            runner: self.runner.clone()?,
-            from: self.from.clone()?,
-            to: self.to.clone()?,
-            out: self.out.clone()?,
+    pub fn build(&self) -> Result<Movement, String> {
+        Ok(Movement {
+            runner: self.runner.clone().ok_or("Runner is required")?,
+            from: self.from.clone().ok_or("From is required")?,
+            to: self.to.clone().ok_or("To is required")?,
+            out: self.out.clone().unwrap_or(false),
         })
     }
 }
@@ -796,11 +798,11 @@ impl PlayBuilder {
         self
     }
 
-    pub fn build_movement(&mut self) -> Option<&mut Self> {
+    pub fn build_movement(&mut self) -> Result<&mut Self, String> {
         self.movements.push(self.movement_builder.build()?);
         self.reset_movement_builder();
 
-        Some(self)
+        Ok(self)
     }
 
     pub fn build(&self) -> Option<Play> {
@@ -1016,6 +1018,7 @@ impl PlayBuilder {
 }
 
 #[pyclass]
+#[derive(Debug)]
 pub struct Game {
     context: Context,
     home_team: Team,
