@@ -3,7 +3,7 @@ mod game;
 use game::{Base, Game, GameBuilder, Inning, PlayType, Player, Position, TopBottom};
 use once_cell::sync::Lazy;
 use pyo3::prelude::{PyResult, pyclass, pymethods};
-use regex::Regex;
+use fancy_regex::Regex;
 use strum::IntoEnumIterator;
 use std::collections::HashSet;
 
@@ -76,11 +76,19 @@ enum GameSection {
     Plays(PlaySection),
 }
 
-const PLAYER_NAME: &str = "[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+";
-static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(PLAYER_NAME).unwrap());
-const COMMA_SPACE: &str = ", ";
 const BASE_NAME: &str = "1|2|3|4|home";
-static BASE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(BASE_NAME).unwrap());
+static BASE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
+    r"^({})",
+    BASE_NAME,
+).as_str()).unwrap());
+const COMMA_SPACE: &str = ", ";
+const PLAYER_NAME: &str = "[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+";
+// static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(PLAYER_NAME).unwrap());
+static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
+    r"^({})(?!(?:{})$)",
+    PLAYER_NAME,
+    BASE_NAME,
+).as_str()).unwrap());
 
 static CONTEXT_SECTION_GAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[GAME\] (?P<game_pk>\d+)").unwrap());
 static CONTEXT_SECTION_DATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[DATE\] (?P<date>\d{4}-\d{2}-\d{2})").unwrap());
@@ -177,7 +185,7 @@ impl Parser {
                 println!("Parsing ContextSection::Game");
 
                 let captures = CONTEXT_SECTION_GAME_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let game_pk_match = captures.name("game_pk").unwrap();
                     let game_pk = game_pk_match.as_str().parse::<u64>().unwrap();
                     self.game_builder.set_game_pk(game_pk);
@@ -192,7 +200,7 @@ impl Parser {
                 println!("Parsing ContextSection::Date");
 
                 let captures = CONTEXT_SECTION_DATE_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let date_match = captures.name("date").unwrap();
                     let date = date_match.as_str().to_string();
                     self.game_builder.set_date(date);
@@ -207,7 +215,7 @@ impl Parser {
                 println!("Parsing ContextSection::Venue");
 
                 let captures = CONTEXT_SECTION_VENUE_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let venue_match = captures.name("venue").unwrap();
                     let venue = venue_match.as_str().trim().to_string();
                     self.game_builder.set_venue(venue);
@@ -222,7 +230,7 @@ impl Parser {
                 println!("Parsing ContextSection::Weather");
 
                 let captures = CONTEXT_SECTION_WEATHER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let weather_match = captures.name("weather").unwrap();
                     let weather = weather_match.as_str().to_string();
 
@@ -251,7 +259,7 @@ impl Parser {
                 println!("Parsing TeamSection::Team");
 
                 let captures = TEAM_SECTION_TEAM_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let team_id_match = captures.name("team_id").unwrap();
                     let team_id = team_id_match.as_str().parse::<u64>().unwrap();
 
@@ -276,7 +284,7 @@ impl Parser {
                 println!("Parsing TeamSection::Player");
 
                 let captures = TEAM_SECTION_PLAYER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let position_match = captures.name("position").unwrap();
                     let position = position_match.as_str().parse::<Position>().unwrap();
 
@@ -328,7 +336,7 @@ impl Parser {
                 println!("Parsing PlaySection::Inning");
 
                 let captures = PLAY_SECTION_INNING_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let number_match = captures.name("number").unwrap();
                     let number = number_match.as_str().parse::<u64>().unwrap();
 
@@ -352,7 +360,7 @@ impl Parser {
                 println!("Parsing PlaySection::Play");
 
                 let captures = PLAY_SECTION_PLAY_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let play_type_match = captures.name("play_type").unwrap();
                     let play_type = play_type_match.as_str().parse::<PlayType>().unwrap();
 
@@ -407,7 +415,7 @@ impl Parser {
                 println!("Parsing PlaySection::Base");
 
                 let captures = PLAY_SECTION_BASE_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let base_match = captures.name("base").unwrap();
                     let base = base_match.as_str().parse::<Base>().unwrap();
 
@@ -453,7 +461,7 @@ impl Parser {
                 println!("Parsing PlaySection::Batter");
 
                 let captures = PLAY_SECTION_BATTER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let batter_match = captures.name("batter").unwrap();
                     let batter = batter_match.as_str().trim().to_string();
 
@@ -495,7 +503,7 @@ impl Parser {
                 println!("Parsing PlaySection::Pitcher");
 
                 let captures = PLAY_SECTION_PITCHER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let pitcher_match = captures.name("pitcher").unwrap();
                     let pitcher = pitcher_match.as_str().trim().to_string();
 
@@ -533,7 +541,7 @@ impl Parser {
                 println!("Parsing PlaySection::Catcher");
 
                 let captures = PLAY_SECTION_CATCHER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let catcher_match = captures.name("catcher").unwrap();
                     let catcher = catcher_match.as_str().trim().to_string();
 
@@ -582,7 +590,7 @@ impl Parser {
 
                         let mut matches = PLAYER_NAME_REGEX.find_iter(&self.input_buffer);
                         let player_name_match = matches.next();
-                        if let Some(player_name_match) = player_name_match {
+                        if let Some(Ok(player_name_match)) = player_name_match {
                             let player_name = player_name_match.as_str().trim().to_string();
 
                             self.game_builder.play_builder.add_fielder(player_name);
@@ -620,7 +628,7 @@ impl Parser {
                 println!("Parsing PlaySection::Runner");
 
                 let captures = PLAY_SECTION_RUNNER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let runner_match = captures.name("runner").unwrap();
                     let runner = runner_match.as_str().trim().to_string();
 
@@ -642,7 +650,7 @@ impl Parser {
                 println!("Parsing PlaySection::ScoringRunner");
 
                 let captures = PLAY_SECTION_SCORING_RUNNER_REGEX.captures(&self.input_buffer);
-                if let Some(captures) = captures {
+                if let Ok(Some(captures)) = captures {
                     let scoring_runner_match = captures.name("scoring_runner").unwrap();
                     let scoring_runner = scoring_runner_match.as_str().trim().to_string();
 
@@ -673,7 +681,7 @@ impl Parser {
 
                         let mut matches = PLAYER_NAME_REGEX.find_iter(&self.input_buffer);
                         let player_name_match = matches.next();
-                        if let Some(player_name_match) = player_name_match {
+                        if let Some(Ok(player_name_match)) = player_name_match {
                             let player_name = player_name_match.as_str().trim().to_string();
 
                             self.game_builder.play_builder.movement_builder.set_runner(player_name);
@@ -687,9 +695,11 @@ impl Parser {
                     MovementsSection::StartBase => {
                         println!("\t=> MovementsSection::StartBase");
 
+                        println!("\t\t(buffer before: {:?})", self.input_buffer);
                         let mut matches = BASE_NAME_REGEX.find_iter(&self.input_buffer);
                         let base_match = matches.next();
-                        if let Some(base_match) = base_match {
+                        if let Some(Ok(base_match)) = base_match {
+                            println!("\t\t(buffer after: {:?})", self.input_buffer);
                             let base = base_match.as_str().trim().parse::<Base>().unwrap();
 
                             self.game_builder.play_builder.movement_builder.set_from(base);
@@ -704,6 +714,8 @@ impl Parser {
                         println!("\t=> MovementsSection::Arrow");
 
                         if self.input_buffer.starts_with(PLAY_SECTION_ARROW) {
+                            println!("\t\t(parsed arrow)");
+
                             self.consume_input(PLAY_SECTION_ARROW.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::EndBase))];
 
@@ -715,7 +727,7 @@ impl Parser {
 
                         let mut matches = BASE_NAME_REGEX.find_iter(&self.input_buffer);
                         let base_match = matches.next();
-                        if let Some(base_match) = base_match {
+                        if let Some(Ok(base_match)) = base_match {
                             let base = base_match.as_str().trim().parse::<Base>().unwrap();
 
                             self.game_builder.play_builder.movement_builder.set_to(base);
