@@ -149,17 +149,19 @@ pub struct Parser {
     possible_sections: Vec<GameSection>,
     game_builder: GameBuilder,
     finished: bool,
+    print_debug: bool,
 }
 
 #[pymethods]
 impl Parser {
     #[staticmethod]
-    fn new() -> Self {
+    fn new(print_debug: bool) -> Self {
         Self {
             input_buffer: String::new(),
             possible_sections: vec![GameSection::Context(ContextSection::Game)],
             game_builder: GameBuilder::new(),
             finished: false,
+            print_debug,
         }
     }
 
@@ -173,7 +175,9 @@ impl Parser {
     fn parse_context_section(&mut self, context_section: ContextSection) -> PyResult<(bool, HashSet<char>)> {
         match context_section {
             ContextSection::Game => {
-                println!("Parsing ContextSection::Game");
+                if self.print_debug {
+                    println!("Parsing ContextSection::Game");
+                }
 
                 let captures = CONTEXT_SECTION_GAME_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
@@ -188,6 +192,10 @@ impl Parser {
                 }
             },
             ContextSection::Date => {
+                if self.print_debug {
+                    println!("Parsing ContextSection::Date");
+                }
+
                 let captures = CONTEXT_SECTION_DATE_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let date_match = captures.name("date").unwrap();
@@ -201,6 +209,10 @@ impl Parser {
                 }
             },
             ContextSection::Venue => {
+                if self.print_debug {
+                    println!("Parsing ContextSection::Venue");
+                }
+
                 let captures = CONTEXT_SECTION_VENUE_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let venue_match = captures.name("venue").unwrap();
@@ -214,6 +226,10 @@ impl Parser {
                 }
             },
             ContextSection::Weather => {
+                if self.print_debug {
+                    println!("Parsing ContextSection::Weather");
+                }
+
                 let captures = CONTEXT_SECTION_WEATHER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let weather_match = captures.name("weather").unwrap();
@@ -241,7 +257,9 @@ impl Parser {
     fn parse_team_section(&mut self, team_section: TeamSection, home_team: bool) -> PyResult<(bool, HashSet<char>)> {
         match team_section {
             TeamSection::Team => {
-                println!("Parsing TeamSection::Team");
+                if self.print_debug {
+                    println!("Parsing TeamSection::Team");
+                }
 
                 let captures = TEAM_SECTION_TEAM_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
@@ -266,6 +284,10 @@ impl Parser {
                 }
             },
             TeamSection::Player => {
+                if self.print_debug {
+                    println!("Parsing TeamSection::Player");
+                }
+
                 let captures = TEAM_SECTION_PLAYER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let position_match = captures.name("position").unwrap();
@@ -306,19 +328,21 @@ impl Parser {
     fn parse_play_section(&mut self, play_section: PlaySection) -> PyResult<(bool, HashSet<char>)> {
         match play_section {
             PlaySection::GameStart() => {
-                println!("Parsing PlaySection::GameStart");
+                if self.print_debug {
+                    println!("Parsing PlaySection::GameStart");
+                }
 
                 if self.input_buffer.starts_with("[GAME_START]") {
                     self.consume_input("[GAME_START]".len());
                     self.possible_sections = vec![GameSection::Plays(PlaySection::Inning())];
 
                     return Ok((true, HashSet::new()));
-                } else {
-                    println!("PlaySection::GameStart: input_buffer: {}", self.input_buffer);
                 }
             },
             PlaySection::Inning() => {
-                println!("Parsing PlaySection::Inning");
+                if self.print_debug {
+                    println!("Parsing PlaySection::Inning");
+                }
 
                 let captures = PLAY_SECTION_INNING_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
@@ -332,7 +356,6 @@ impl Parser {
                         number,
                         top_bottom,
                     };
-                    println!("PlaySection::Inning: inning: {:?}", inning);
 
                     self.game_builder.play_builder.set_inning(inning);
 
@@ -343,7 +366,10 @@ impl Parser {
                 }
             },
             PlaySection::Play() => {
-                println!("Parsing PlaySection::Play");
+                if self.print_debug {
+                    println!("Parsing PlaySection::Play");
+                }
+
 
                 let captures = PLAY_SECTION_PLAY_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
@@ -398,13 +424,14 @@ impl Parser {
                 }
             },
             PlaySection::Base() => {
-                println!("Parsing PlaySection::Base");
+                if self.print_debug {
+                    println!("Parsing PlaySection::Base");
+                }
 
                 let captures = PLAY_SECTION_BASE_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let base_match = captures.name("base").unwrap();
                     let base = base_match.as_str().parse::<Base>().unwrap();
-                    println!("\t(=> PlaySection::Base: base: {:?})", base);
 
                     self.game_builder.play_builder.set_base(base);
 
@@ -442,11 +469,13 @@ impl Parser {
                     }
 
                     return Ok((true, HashSet::new()));
-                } else {
-                    println!("\t(=> PlaySection::Base: input_buffer: {})", self.input_buffer);
                 }
             },
             PlaySection::Batter() => {
+                if self.print_debug {
+                    println!("Parsing PlaySection::Batter");
+                }
+
                 let captures = PLAY_SECTION_BATTER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let batter_match = captures.name("batter").unwrap();
@@ -487,6 +516,10 @@ impl Parser {
                 }
             },
             PlaySection::Pitcher() => {
+                if self.print_debug {
+                    println!("Parsing PlaySection::Pitcher");
+                }
+
                 let captures = PLAY_SECTION_PITCHER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let pitcher_match = captures.name("pitcher").unwrap();
@@ -523,6 +556,10 @@ impl Parser {
                 }
             },
             PlaySection::Catcher() => {
+                if self.print_debug {
+                    println!("Parsing PlaySection::Catcher");
+                }
+
                 let captures = PLAY_SECTION_CATCHER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let catcher_match = captures.name("catcher").unwrap();
@@ -555,23 +592,27 @@ impl Parser {
                 }
             },
             PlaySection::Fielders(fielders_section) => {
-                println!("Parsing PlaySection::Fielders");
+                if self.print_debug {
+                    println!("Parsing PlaySection::Fielders");
+                }
 
                 match fielders_section {
                     FieldersSection::Tag => {
-                        println!("\t(=> FieldersSection::Tag)");
+                        if self.print_debug {
+                            println!("\t(=> FieldersSection::Tag)");
+                        }
 
                         if self.input_buffer.starts_with(PLAY_SECTION_FIELDERS_TAG) {
                             self.consume_input(PLAY_SECTION_FIELDERS_TAG.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Fielders(FieldersSection::Name))];
 
                             return Ok((true, HashSet::new()));
-                        } else {
-                            println!("\t(=> FieldersSection::Tag: input_buffer: {})", self.input_buffer);
                         }
                     },
                     FieldersSection::Name => {
-                        println!("\t(=> FieldersSection::Name)");
+                        if self.print_debug {
+                            println!("\t(=> FieldersSection::Name)");
+                        }
 
                         let mut matches = PLAYER_NAME_REGEX.find_iter(&self.input_buffer);
                         let player_name_match = matches.next();
@@ -586,14 +627,6 @@ impl Parser {
                                 GameSection::Plays(PlaySection::Fielders(FieldersSection::CommaSpace)),
                             ];
                             let play_type = self.game_builder.play_builder.play_type.unwrap();
-                            // if play_type.requires_runner() {
-                            //     self.possible_sections.push(GameSection::Plays(PlaySection::Runner()));
-                            // } else if play_type.requires_scoring_runner() {
-                            //     self.possible_sections.push(GameSection::Plays(PlaySection::ScoringRunner()));
-                            // } else {
-                            //     self.possible_sections.push(GameSection::Plays(PlaySection::Movements(MovementsSection::Tag)));
-                            // }
-
                             if play_type.requires_scoring_runner() {
                                 self.possible_sections.push(GameSection::Plays(PlaySection::ScoringRunner()));
                             } else {
@@ -604,7 +637,9 @@ impl Parser {
                         }
                     },
                     FieldersSection::CommaSpace => {
-                        println!("\t(=> FieldersSection::CommaSpace)");
+                        if self.print_debug {
+                            println!("\t(=> FieldersSection::CommaSpace)");
+                        }
 
                         if self.input_buffer.starts_with(COMMA_SPACE) {
                             self.consume_input(COMMA_SPACE.len());
@@ -616,7 +651,9 @@ impl Parser {
                 }
             },
             PlaySection::Runner() => {
-                println!("Parsing PlaySection::Runner");
+                if self.print_debug {
+                    println!("Parsing PlaySection::Runner");
+                }
 
                 let captures = PLAY_SECTION_RUNNER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
@@ -640,6 +677,10 @@ impl Parser {
                 }
             },
             PlaySection::ScoringRunner() => {
+                if self.print_debug {
+                    println!("Parsing PlaySection::ScoringRunner");
+                }
+
                 let captures = PLAY_SECTION_SCORING_RUNNER_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let scoring_runner_match = captures.name("scoring_runner").unwrap();
@@ -654,8 +695,16 @@ impl Parser {
                 }
             },
             PlaySection::Movements(movements_section) => {
+                if self.print_debug {
+                    println!("Parsing PlaySection::Movements");
+                }
+
                 match movements_section {
                     MovementsSection::Tag => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::Tag)");
+                        }
+
                         if self.input_buffer.starts_with(PLAY_SECTION_MOVEMENTS_TAG) {
                             self.consume_input(PLAY_SECTION_MOVEMENTS_TAG.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Name))];
@@ -664,6 +713,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::Name => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::Name)");
+                        }
+
                         let mut matches = PLAYER_NAME_REGEX.find_iter(&self.input_buffer);
                         let player_name_match = matches.next();
                         if let Some(Ok(player_name_match)) = player_name_match {
@@ -688,6 +741,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::StartBase => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::StartBase)");
+                        }
+
                         let mut matches = BASE_NAME_REGEX.find_iter(&self.input_buffer);
                         let base_match = matches.next();
                         if let Some(Ok(base_match)) = base_match {
@@ -702,6 +759,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::Arrow => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::Arrow)");
+                        }
+
                         if self.input_buffer.starts_with(PLAY_SECTION_ARROW) {
                             self.consume_input(PLAY_SECTION_ARROW.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::EndBase))];
@@ -710,6 +771,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::EndBase => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::EndBase)");
+                        }
+
                         let mut matches = BASE_NAME_REGEX.find_iter(&self.input_buffer);
                         let base_match = matches.next();
                         if let Some(Ok(base_match)) = base_match {
@@ -727,6 +792,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::Out => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::Out)");
+                        }
+
                         if self.input_buffer.starts_with(PLAY_SECTION_OUT) {
                             self.consume_input(PLAY_SECTION_OUT.len());
                             self.game_builder.play_builder.movement_builder.set_out(true);
@@ -739,6 +808,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::CommaSpace => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::CommaSpace)");
+                        }
+
                         if self.input_buffer.starts_with(COMMA_SPACE) {
                             self.consume_input(COMMA_SPACE.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Name))];
@@ -747,6 +820,10 @@ impl Parser {
                         }
                     },
                     MovementsSection::MovementEnd => {
+                        if self.print_debug {
+                            println!("\t(=> MovementsSection::MovementEnd)");
+                        }
+
                         let _ = self.game_builder.play_builder.build_movement();
 
                         self.possible_sections = vec![
@@ -759,7 +836,9 @@ impl Parser {
                 }
             },
             PlaySection::PlayEnd() => {
-                println!("Parsing PlaySection::PlayEnd");
+                if self.print_debug {
+                    println!("Parsing PlaySection::PlayEnd");
+                }
 
                 self.game_builder.build_play();
 
@@ -771,7 +850,9 @@ impl Parser {
                 return Ok((true, HashSet::new()));
             },
             PlaySection::GameEnd() => {
-                println!("Parsing PlaySection::GameEnd");
+                if self.print_debug {
+                    println!("Parsing PlaySection::GameEnd");
+                }
 
                 if self.input_buffer.starts_with("[GAME_END]") {
                     self.consume_input("[GAME_END]".len());
@@ -837,7 +918,7 @@ mod tests {
 
     #[test]
     fn parse_game_pk() {
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 766493";
         let _ = parser.parse_input(input);
 
@@ -850,7 +931,7 @@ mod tests {
 
     #[test]
     fn parse_date() {
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 766493 [DATE] 2024-03-24";
 
         let _ = parser.parse_input(input);
@@ -864,7 +945,7 @@ mod tests {
 
     #[test]
     fn parse_partial_input_is_ok() {
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAM";
         let result = parser.parse_input(input);
 
@@ -883,7 +964,7 @@ mod tests {
 
     #[test]
     fn parse_entire_context_section() {
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9";
 
         let _ = parser.parse_input(input);
@@ -927,7 +1008,7 @@ mod tests {
 
     #[test]
     fn parse_home_team_section() {
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 0 [DATE] 0000-00-00 [VENUE] venue [WEATHER] weather 0 0\n\n[TEAM] 20\n[SECOND_BASE] Robinson Canó\n[PITCHER] Arturo Lopez";
 
         let _ = parser.parse_input(input);
@@ -949,7 +1030,7 @@ mod tests {
 
     #[test]
     fn parse_away_team_section() {
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 0 [DATE] 0000-00-00 [VENUE] venue [WEATHER] weather 0 0\n\n[TEAM] 20\n[SECOND_BASE] Robinson Canó\n[PITCHER] Arturo Lopez [TEAM] 147 [THIRD_BASE] DJ LeMahieu [FIRST_BASE] Anthony Rizzo";
 
         let _ = parser.parse_input(input);
@@ -973,7 +1054,7 @@ mod tests {
     fn parse_simple_play() {
         use game::{PlayContent, Movement};
 
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 1 top [PLAY] Lineout [BATTER] Anthony Volpe [PITCHER] Trevor Bauer [FIELDERS] Aristides Aquino [MOVEMENTS] Anthony Volpe home -> home [out]";
 
         let _ = parser.parse_input(input);
@@ -1001,7 +1082,7 @@ mod tests {
     #[test]
     fn parse_complex_play() {
         use game::{PlayContent, Movement};
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 3 bottom [PLAY] Groundout [BATTER] Juan Carlos Gamboa [PITCHER] Tanner Tully [FIELDERS] Tanner Tully, Trevor Bauer [MOVEMENTS] Juan Carlos Gamboa home -> home [out], Xavier Fernández 1 -> 2";
 
         let _ = parser.parse_input(input);
@@ -1036,7 +1117,7 @@ mod tests {
     fn parse_full_game() {
         let re = Regex::new(r"\s+").unwrap();
 
-        let mut parser = Parser::new();
+        let mut parser = Parser::new(true);
         let input = include_str!("../test_data/766493.txt");
         let input = re.replace_all(input, " ");
 
