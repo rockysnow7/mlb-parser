@@ -83,12 +83,13 @@ static BASE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
 ).as_str()).unwrap());
 const COMMA_SPACE: &str = ", ";
 const PLAYER_NAME: &str = "[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+";
-// static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(PLAYER_NAME).unwrap());
-static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
-    r"^({})(?!(?:{})$)",
-    PLAYER_NAME,
-    BASE_NAME,
-).as_str()).unwrap());
+// static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
+//     // r"^({})(?!(?:{})$)",
+//     r"^{}(?<!{})$",
+//     PLAYER_NAME,
+//     BASE_NAME,
+// ).as_str()).unwrap());
+static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(PLAYER_NAME).unwrap());
 
 static CONTEXT_SECTION_GAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[GAME\] (?P<game_pk>\d+)").unwrap());
 static CONTEXT_SECTION_DATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[DATE\] (?P<date>\d{4}-\d{2}-\d{2})").unwrap());
@@ -682,11 +683,23 @@ impl Parser {
                         let mut matches = PLAYER_NAME_REGEX.find_iter(&self.input_buffer);
                         let player_name_match = matches.next();
                         if let Some(Ok(player_name_match)) = player_name_match {
-                            let player_name = player_name_match.as_str().trim().to_string();
+                            let mut player_name = player_name_match.as_str().trim().to_string();
+                            let mut trimmed_length = 0;
+
+                            for base in ["1", "2", "3", "4", "home"] {
+                                if player_name.ends_with(base) {
+                                    trimmed_length = base.len();
+                                    player_name.truncate(player_name.len() - trimmed_length);
+                                    break;
+                                }
+                            }
+
+                            player_name = player_name.trim().to_string();
+                            println!("\t\t(parsed player_name: {:?}, trimmed_length: {})", player_name, trimmed_length);
 
                             self.game_builder.play_builder.movement_builder.set_runner(player_name);
 
-                            self.consume_input(player_name_match.end());
+                            self.consume_input(player_name_match.end() - trimmed_length - 1);
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::StartBase))];
 
                             return Ok((true, HashSet::new()));
