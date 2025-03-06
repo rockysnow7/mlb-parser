@@ -668,6 +668,7 @@ pub struct Movement {
     pub out: bool,
 }
 
+#[derive(Debug)]
 pub struct MovementBuilder {
     runner: Option<String>,
     from: Option<Base>,
