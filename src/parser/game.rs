@@ -673,12 +673,12 @@ pub struct MovementBuilder {
     runner: Option<String>,
     from: Option<Base>,
     to: Option<Base>,
-    out: Option<bool>,
+    out: bool,
 }
 
 impl MovementBuilder {
     pub fn new() -> Self {
-        Self { runner: None, from: None, to: None, out: None }
+        Self { runner: None, from: None, to: None, out: false }
     }
 
     pub fn set_runner(&mut self, runner: String) -> &mut Self {
@@ -696,17 +696,17 @@ impl MovementBuilder {
         self
     }
 
-    pub fn set_out(&mut self, out: bool) -> &mut Self {
-        self.out = Some(out);
+    pub fn set_out(&mut self) -> &mut Self {
+        self.out = true;
         self
     }
 
     pub fn build(&self) -> Result<Movement, String> {
         Ok(Movement {
-            runner: self.runner.clone().ok_or("Runner is required")?,
-            from: self.from.clone().ok_or("From is required")?,
-            to: self.to.clone().ok_or("To is required")?,
-            out: self.out.clone().unwrap_or(false),
+            runner: self.runner.clone().ok_or("Runner is required, not set")?,
+            from: self.from.clone().ok_or("From is required, not set")?,
+            to: self.to.clone().ok_or("To is required, not set")?,
+            out: self.out,
         })
     }
 }

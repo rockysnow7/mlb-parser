@@ -70,13 +70,13 @@ enum GameSection {
     Plays(PlaySection),
 }
 
-const BASE_NAME: &str = "1|2|3|4|home";
+const BASE_NAME: &str = r"\s*(1|2|3|4|home)\s*";
 static BASE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^({})",
     BASE_NAME,
 ).as_str()).unwrap());
 const COMMA_SPACE: &str = ", ";
-const PLAYER_NAME: &str = "[a-zA-ZÀ-ÖØ-öø-ÿ.' ]+";
+const PLAYER_NAME: &str = r"[a-zA-ZÀ-ÖØ-öø-ÿ.'\- ]+";
 static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^{}",
     PLAYER_NAME,
@@ -150,6 +150,8 @@ static PLAY_SECTION_SCORING_RUNNER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(
 const PLAY_SECTION_MOVEMENTS_TAG: &str = "[MOVEMENTS]";
 const PLAY_SECTION_ARROW: &str = "->";
 const PLAY_SECTION_OUT: &str = "[out]";
+
+static INITIAL_NEWLINES_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\n+").unwrap());
 
 #[pyclass]
 pub struct Parser {
@@ -768,8 +770,8 @@ impl Parser {
                     },
                     MovementsSection::Out => {
                         if self.input_buffer.starts_with(PLAY_SECTION_OUT) {
-                            self.game_builder.play_builder.movement_builder.set_out(true);
-                            
+                            self.game_builder.play_builder.movement_builder.set_out();
+
                             if self.input_buffer.len() == PLAY_SECTION_OUT.len() {
                                 return Ok((false, HashSet::new()));
                             }
@@ -781,6 +783,8 @@ impl Parser {
                             ];
 
                             return Ok((true, HashSet::new()));
+                        } else if self.print_debug {
+                            println!("input does not start with `[out]`");
                         }
                     },
                     MovementsSection::CommaSpace => {
@@ -795,6 +799,7 @@ impl Parser {
                         let _ = self.game_builder.play_builder.build_movement();
 
                         self.possible_sections = vec![
+                            GameSection::Plays(PlaySection::Movements(MovementsSection::Out)),
                             GameSection::Plays(PlaySection::Movements(MovementsSection::CommaSpace)),
                             GameSection::Plays(PlaySection::PlayEnd()),
                         ];
@@ -804,14 +809,20 @@ impl Parser {
                 }
             },
             PlaySection::PlayEnd() => {
-                self.game_builder.build_play();
+                if self.input_buffer.starts_with(";") {
+                    self.consume_input(1);
 
-                self.possible_sections = vec![
-                    GameSection::Plays(PlaySection::Inning()),
-                    GameSection::Plays(PlaySection::GameEnd()),
-                ];
+                    self.game_builder.build_play();
 
-                return Ok((true, HashSet::new()));
+                    self.possible_sections = vec![
+                        GameSection::Plays(PlaySection::Inning()),
+                        GameSection::Plays(PlaySection::GameEnd()),
+                    ];
+
+                    return Ok((true, HashSet::new()));
+                }
+
+                return Ok((false, HashSet::new()));
             },
             PlaySection::GameEnd() => {
                 if self.input_buffer.starts_with("[GAME_END]") {
@@ -871,7 +882,8 @@ impl Parser {
 
     /// Stream-parse a game and return the set of valid next characters.
     pub fn parse_input(&mut self, input: &str) -> PyResult<HashSet<char>> {
-        self.input_buffer.push_str(input);
+        let input = INITIAL_NEWLINES_REGEX.replace(input, "");
+        self.input_buffer.push_str(&input);
 
         loop {
             if self.finished {
@@ -902,7 +914,7 @@ mod tests {
 
     #[test]
     fn parse_game_pk() {
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let input = "[GAME] 766493";
         let _ = parser.parse_input(input);
 
@@ -915,7 +927,7 @@ mod tests {
 
     #[test]
     fn parse_date() {
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let input = "[GAME] 766493 [DATE] 2024-03-24";
 
         let _ = parser.parse_input(input);
@@ -929,7 +941,7 @@ mod tests {
 
     #[test]
     fn parse_partial_input_is_ok() {
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let input = "[GAM";
         let result = parser.parse_input(input);
 
@@ -948,7 +960,7 @@ mod tests {
 
     #[test]
     fn parse_entire_context_section() {
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9";
 
         let _ = parser.parse_input(input);
@@ -992,7 +1004,7 @@ mod tests {
 
     #[test]
     fn parse_home_team_section() {
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let input = "[GAME] 0 [DATE] 0000-00-00 [VENUE] venue [WEATHER] weather 0 0\n\n[TEAM] 20\n[SECOND_BASE] Robinson Canó\n[PITCHER] Arturo Lopez [";
 
         let _ = parser.parse_input(input);
@@ -1014,7 +1026,7 @@ mod tests {
 
     #[test]
     fn parse_away_team_section() {
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let input = "[GAME] 0 [DATE] 0000-00-00 [VENUE] venue [WEATHER] weather 0 0\n\n[TEAM] 20\n[SECOND_BASE] Robinson Canó\n[PITCHER] Arturo Lopez [TEAM] 147 [THIRD_BASE] DJ LeMahieu [FIRST_BASE] Anthony Rizzo [";
 
         let _ = parser.parse_input(input);
@@ -1038,8 +1050,8 @@ mod tests {
     fn parse_simple_play() {
         use game::{PlayContent, Movement};
 
-        let mut parser = Parser::new(true);
-        let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 1 top [PLAY] Lineout [BATTER] Anthony Volpe [PITCHER] Trevor Bauer [FIELDERS] Aristides Aquino [MOVEMENTS] Anthony Volpe home -> home [out]";
+        let mut parser = Parser::new(false);
+        let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 1 top [PLAY] Lineout [BATTER] Anthony Volpe [PITCHER] Trevor Bauer [FIELDERS] Aristides Aquino [MOVEMENTS] Anthony Volpe home -> home [out];";
 
         let _ = parser.parse_input(input);
 
@@ -1066,8 +1078,8 @@ mod tests {
     #[test]
     fn parse_complex_play() {
         use game::{PlayContent, Movement};
-        let mut parser = Parser::new(true);
-        let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 3 bottom [PLAY] Groundout [BATTER] Juan Carlos Gamboa [PITCHER] Tanner Tully [FIELDERS] Tanner Tully, Trevor Bauer [MOVEMENTS] Juan Carlos Gamboa home -> home [out], Xavier Fernández 1 -> 2 [";
+        let mut parser = Parser::new(false);
+        let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 3 bottom [PLAY] Groundout [BATTER] Juan Carlos Gamboa [PITCHER] Tanner Tully [FIELDERS] Tanner Tully, Trevor Bauer [MOVEMENTS] Juan Carlos Gamboa home -> home [out], Xavier Fernández 1 -> 2;";
 
         let _ = parser.parse_input(input);
 
@@ -1100,9 +1112,7 @@ mod tests {
     #[test]
     fn parse_full_game() {
         let mut parser = Parser::new(true);
-        let input = include_str!("../test_data/766493.txt");
-
-        println!("\ninput: {}\n", input);
+        let input = include_str!("../test_data/748231.txt");
 
         let _ = parser.parse_input(&input);
 
@@ -1116,7 +1126,7 @@ mod tests {
     fn parse_very_broken_up_input() {
         use game::{PlayContent, Movement};
 
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
 
         let _ = parser.parse_input("[GAM");
         let _ = parser.parse_input("E] 766");
@@ -1140,7 +1150,7 @@ mod tests {
         let _ = parser.parse_input(", Kris Bry");
         let _ = parser.parse_input("ant [MOVEMENTS] Anthony Volpe home");
         let _ = parser.parse_input(" -> home");
-        let _ = parser.parse_input(" [out]");
+        let _ = parser.parse_input(" [out];");
 
         if let Some(game_pk) = parser.game_builder.game_pk {
             assert_eq!(game_pk, 766493);
@@ -1201,7 +1211,7 @@ mod tests {
         assert_eq!(parser.game_builder.away_team_players[1].name, "Anthony Rizzo");
 
         assert!(parser.game_builder.plays.len() == 1);
-        println!("play: {:#?}", parser.game_builder.plays[0]);
+        // println!("play: {:#?}", parser.game_builder.plays[0]);
         assert!(parser.game_builder.plays[0].inning == Inning { number: 1, top_bottom: TopBottom::Top });
         assert!(parser.game_builder.plays[0].play_content == PlayContent::Lineout {
             batter: "Anthony Volpe".to_string(),
@@ -1226,7 +1236,7 @@ mod tests {
         use rand::Rng;
 
         let mut parser = Parser::new(true);
-        let mut input = include_str!("../test_data/766493.txt").to_string();
+        let mut input = include_str!("../test_data/748231.txt").to_string();
 
         let mut rng = rand::rng();
         let mut parts = Vec::new();
@@ -1239,9 +1249,9 @@ mod tests {
         }
 
         for part in parts {
-            println!("part: {:?}\n", part);
+            // println!("part: {:?}\n", part);
             let _ = parser.parse_input(&part);
-            println!("=====\n");
+            // println!("=====\n");
         }
 
         assert!(parser.finished);
