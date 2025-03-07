@@ -1259,4 +1259,36 @@ mod tests {
         let game = parser.complete().unwrap();
         println!("\ngame: {:#?}\n", game);
     }
+
+    #[test]
+    fn parse_all_games_broken_up() {
+        use glob::glob;
+        use rand::Rng;
+
+        let paths = glob("test_data/*.txt").unwrap();
+
+        let mut parser = Parser::new(true);
+        let mut rng = rand::rng();
+        for path in paths {
+            let mut input = std::fs::read_to_string(path.unwrap()).unwrap();
+
+            let mut parts = Vec::new();
+            while !input.is_empty() {
+                let part_size = rng.random_range(1..=10).min(input.len());
+                let part = input.chars().take(part_size).collect::<String>();
+                parts.push(part);
+
+                input = input.chars().skip(part_size).collect::<String>();
+            }
+
+            for part in parts {
+                let _ = parser.parse_input(&part);
+            }
+
+            assert!(parser.finished);
+
+            let game = parser.complete().unwrap();
+            println!("\ngame: {:#?}\n", game);
+        }
+    }
 }

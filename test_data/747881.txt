@@ -1,0 +1,293 @@
+[GAME] 747881 [DATE] 2024-03-20 [VENUE] Angel Stadium [WEATHER] Sunny 75 5
+
+[TEAM] 108
+[PITCHER] Luis García
+[SHORTSTOP] Ehire Adrianza
+[PITCHER] Matt Moore
+[PITCHER] Drew Pomeranz
+[PITCHER] Hunter Strickland
+[PITCHER] José Cisnero
+[PITCHER] Tyler Anderson
+[RIGHT_FIELD] Aaron Hicks
+[THIRD_BASE] Anthony Rendon
+[CENTER_FIELD] Jake Marisnick
+[CENTER_FIELD] Mike Trout
+[FIRST_BASE] Brandon Drury
+[PITCHER] Adam Kolarek
+[FIRST_BASE] Miguel Sanó
+[PITCHER] Tayron Guerrero
+[CATCHER] Chad Wallach
+[PITCHER] Robert Stephenson
+[SHORTSTOP] Jack López
+[PITCHER] Carlos Estévez
+[PITCHER] Carson Fulmer
+[LEFT_FIELD] Taylor Ward
+[RIGHT_FIELD] Willie Calhoun
+[THIRD_BASE] Hunter Dozier
+[SECOND_BASE] Charles Leblanc
+[OUTFIELD] Jason Martin
+[DESIGNATED_HITTER] Matt Thaiss
+[PITCHER] Adam Cimber
+[CATCHER] Caleb Hamilton
+[PITCHER] Griffin Canning
+[FIRST_BASE] Evan White
+[PITCHER] Alan Rangel
+[PITCHER] José Suarez
+[PITCHER] Patrick Sandoval
+[PITCHER] José Marte
+[PITCHER] Willian Suarez
+[CENTER_FIELD] Mickey Moniak
+[RIGHT_FIELD] Jo Adell
+[PITCHER] José Soriano
+[PITCHER] Kenyon Yovan
+[PITCHER] Tyler Thomas
+[CATCHER] Zach Humphreys
+[PITCHER] Ryan Miller
+[PITCHER] Hans Crouse
+[PITCHER] Jack Dashwood
+[PITCHER] Aaron Hernandez
+[PITCHER] Travis MacGregor
+[PITCHER] Zac Kristofak
+[SECOND_BASE] Livan Soto
+[PITCHER] Guillo Zuñiga
+[FIRST_BASE] Matt Coutney
+[PITCHER] Reid Detmers
+[CATCHER] Gustavo Campero
+[PITCHER] Roman Phansalkar
+[FIRST_BASE] Eric Wagaman
+[PITCHER] Ivan Armstrong
+[PITCHER] Chase Chaney
+[PITCHER] Chase Silseth
+[CATCHER] Logan O'Hoppe
+[PITCHER] Andrew Wantz
+[PITCHER] Erik Rivera
+[PITCHER] Logan Britt
+[SECOND_BASE] Michael Stefanic
+[PITCHER] Bryce Osmond
+[PITCHER] Jared Southard
+[PITCHER] Luke Murphy
+[PITCHER] Nathan Burns
+[CENTER_FIELD] Natanael Santana
+[SHORTSTOP] Zach Neto
+[RIGHT_FIELD] Tucker Flint
+[CATCHER] Anthony Mulrine
+[PITCHER] Hayden Seig
+[CATCHER] Myles Emmerson
+[PITCHER] Michael Darrell-Hicks
+[PITCHER] Ben Joyce
+[LEFT_FIELD] Werner Blakely
+[THIRD_BASE] Arol Vera
+[SHORTSTOP] Adrian Placencia
+[PITCHER] Ruben Castillo
+[PITCHER] Erik Martinez
+[SHORTSTOP] Denzer Guzman
+[THIRD_BASE] Cole Fontenelle
+[FIRST_BASE] Nolan Schanuel
+[PITCHER] Nick Jones
+[FIRST_BASE] Sam Brown
+[PITCHER] Brett Kerry
+[CENTER_FIELD] Landon Wallace
+[PITCHER] Camden Minacci
+[PITCHER] Sam Bachman
+[PITCHER] Chris Barraza
+[PITCHER] Samy Natera Jr.
+[PITCHER] Walbert Urena
+[PITCHER] Dylan Phillips
+[SHORTSTOP] Andy Blake
+[FIRST_BASE] Cristian Garcia
+[CENTER_FIELD] Jorge Ruiz
+[PITCHER] Caden Dana
+[CENTER_FIELD] Nelson Rada
+[PITCHER] Jorge Marcheco
+[OUTFIELD] Anthony Scull
+[SHORTSTOP] Luis Rodriguez
+[INFIELD] Capri Ortiz
+[CENTER_FIELD] Kevyn Castillo
+[FIRST_BASE] Sonny DiChiara
+[OUTFIELD] Luis Torres
+[PITCHER] Chris Clark
+[PITCHER] Joel Hurtado
+[THIRD_BASE] Ben Gobbel
+[CATCHER] Juan Flores
+[PITCHER] Will Christophersen
+[LEFT_FIELD] Joe Redfield
+[CATCHER] Alberto Rios
+[SECOND_BASE] Mac McCroskey
+
+[TEAM] 137
+[FIRST_BASE] Pablo Sandoval
+[PITCHER] Alex Cobb
+[FIRST_BASE] Wilmer Flores
+[PITCHER] Taylor Rogers
+[RIGHT_FIELD] Mike Yastrzemski
+[PITCHER] Luke Jackson
+[RIGHT_FIELD] Austin Slater
+[SHORTSTOP] Nick Ahmed
+[PITCHER] Blake Snell
+[PITCHER] Amir Garrett
+[CATCHER] Tom Murphy
+[PITCHER] Justin Garza
+[SECOND_BASE] Donovan Walton
+[LEFT_FIELD] Michael Conforto
+[DESIGNATED_HITTER] Jorge Soler
+[PITCHER] Daulton Jefferies
+[PITCHER] Tanner Kiest
+[SECOND_BASE] Thairo Estrada
+[PITCHER] Tyler Rogers
+[THIRD_BASE] Matt Chapman
+[CATCHER] Jakson Reetz
+[PITCHER] Logan Webb
+[FIRST_BASE] Yoshi Tsutsugo
+[PITCHER] Thomas Szapucki
+[PITCHER] Sean Hjelle
+[PITCHER] Ethan Small
+[CATCHER] Joey Bart
+[PITCHER] Matt Frisbee
+[PITCHER] Jordan Hicks
+[PITCHER] Cody Stashak
+[RIGHT_FIELD] LaMonte Wade Jr.
+[CENTER_FIELD] Ismael Munguia
+[SECOND_BASE] Tyler Fitzgerald
+[LEFT_FIELD] Blake Sabol
+[OUTFIELD] Hunter Bishop
+[RIGHT_FIELD] Yusniel Díaz
+[PITCHER] Camilo Doval
+[CATCHER] Brandon Martorano
+[PITCHER] Wil Jensen
+[PITCHER] Blayne Enlow
+[SHORTSTOP] Will Wilson
+[FIRST_BASE] Trenton Brooks
+[CATCHER] Patrick Bailey
+[CATCHER] Andy Thomas
+[PITCHER] Spencer Howard
+[CENTER_FIELD] Chase Pinder
+[PITCHER] Ryan Walker
+[PITCHER] Nick Swiney
+[PITCHER] Tommy Romero
+[PITCHER] Keaton Winn
+[PITCHER] Juan Sanchez
+[PITCHER] José Cruz
+[SECOND_BASE] Damon Dues
+[PITCHER] Tanner Andrews
+[CATCHER] Zach Morgan
+[PITCHER] Ben Madison
+[THIRD_BASE] Brett Auerbach
+[SHORTSTOP] Marco Luciano
+[DESIGNATED_HITTER] Luis Matos
+[OUTFIELD] Victor Bericoto
+[PITCHER] Chris Wright
+[PITCHER] Reggie Crawford
+[PITCHER] Tyler Myrick
+[PITCHER] Nick Avila
+[PITCHER] Nick Morreale
+[THIRD_BASE] Thomas Gavello
+[CENTER_FIELD] Grant McCray
+[PITCHER] Carson Whisenhunt
+[PITCHER] Evan Gates
+[PITCHER] Daniel Blair
+[PITCHER] Kyle Harrison
+[CATCHER] Onil Perez
+[CATCHER] Adrián Sugastey
+[PITCHER] Carson Seymour
+[SHORTSTOP] Diego Velasquez
+[PITCHER] Nick Garcia
+[THIRD_BASE] Jimmy Glowenke
+[SHORTSTOP] Cole Foster
+[PITCHER] Cameron Cotter
+[PITCHER] Landen Roupp
+[SHORTSTOP] Maui Ahuna
+[PITCHER] Mat Olsen
+[PITCHER] Mason Black
+[PITCHER] Nick Sinacola
+[PITCHER] Spencer Bivens
+[PITCHER] Hunter Dula
+[CATCHER] Juan Perez
+[RIGHT_FIELD] Carter Howell
+[PITCHER] John Michael Bertrand
+[PITCHER] Dylan Cumming
+[PITCHER] Tyler Vogel
+[PITCHER] Jack Choate
+[PITCHER] Trent Harris
+[PITCHER] Hayden Birdsong
+[CENTER_FIELD] Jung Hoo Lee
+[LEFT_FIELD] Scott Bandura
+
+[GAME_START]
+[INNING] 1 top [PLAY] Single [BATTER] Jung Hoo Lee [PITCHER] Tyler Anderson [MOVEMENTS] Jung Hoo Lee home -> 1;
+[INNING] 1 top [PLAY] Pop Out [BATTER] Matt Chapman [PITCHER] Tyler Anderson [FIELDERS] Anthony Rendon [MOVEMENTS] Matt Chapman home -> home [out];
+[INNING] 1 top [PLAY] Strikeout [BATTER] Michael Conforto [PITCHER] Tyler Anderson [MOVEMENTS] Michael Conforto home -> home [out];
+[INNING] 1 top [PLAY] Flyout [BATTER] Jorge Soler [PITCHER] Tyler Anderson [FIELDERS] Taylor Ward [MOVEMENTS] Jorge Soler home -> home [out];
+[INNING] 1 bottom [PLAY] Walk [BATTER] Anthony Rendon [PITCHER] Jordan Hicks [MOVEMENTS] Anthony Rendon home -> 1;
+[INNING] 1 bottom [PLAY] Single [BATTER] Aaron Hicks [PITCHER] Jordan Hicks [MOVEMENTS] Aaron Hicks home -> 1, Anthony Rendon 1 -> 2;
+[INNING] 1 bottom [PLAY] Walk [BATTER] Mike Trout [PITCHER] Jordan Hicks [MOVEMENTS] Anthony Rendon 2 -> 3, Aaron Hicks 1 -> 2, Mike Trout home -> 1;
+[INNING] 1 bottom [PLAY] Grounded Into Double Play [BATTER] Taylor Ward [PITCHER] Jordan Hicks [FIELDERS] Thairo Estrada, Nick Ahmed [MOVEMENTS] Mike Trout 1 -> home [out], Taylor Ward home -> home [out], Anthony Rendon 3 -> 4, Aaron Hicks 2 -> 3;
+[INNING] 1 bottom [PLAY] Groundout [BATTER] Brandon Drury [PITCHER] Jordan Hicks [FIELDERS] Nick Ahmed [MOVEMENTS] Brandon Drury home -> home [out];
+[INNING] 2 top [PLAY] Single [BATTER] Thairo Estrada [PITCHER] Tyler Anderson [MOVEMENTS] Thairo Estrada home -> 1;
+[INNING] 2 top [PLAY] Strikeout Double Play [BATTER] Patrick Bailey [PITCHER] Tyler Anderson [FIELDERS] Chad Wallach, Chad Wallach [MOVEMENTS] Patrick Bailey home -> home [out], Thairo Estrada 1 -> home [out];
+[INNING] 2 top [PLAY] Strikeout [BATTER] Mike Yastrzemski [PITCHER] Tyler Anderson [MOVEMENTS] Mike Yastrzemski home -> home [out];
+[INNING] 2 bottom [PLAY] Groundout [BATTER] Matt Thaiss [PITCHER] Jordan Hicks [FIELDERS] LaMonte Wade Jr. [MOVEMENTS] Matt Thaiss home -> home [out];
+[INNING] 2 bottom [PLAY] Single [BATTER] Ehire Adrianza [PITCHER] Jordan Hicks [MOVEMENTS] Ehire Adrianza home -> 1;
+[INNING] 2 bottom [PLAY] Single [BATTER] Chad Wallach [PITCHER] Jordan Hicks [MOVEMENTS] Chad Wallach home -> 1, Ehire Adrianza 1 -> 2;
+[INNING] 2 bottom [PLAY] Flyout [BATTER] Livan Soto [PITCHER] Jordan Hicks [FIELDERS] Michael Conforto [MOVEMENTS] Livan Soto home -> home [out];
+[INNING] 2 bottom [PLAY] Groundout [BATTER] Anthony Rendon [PITCHER] Jordan Hicks [FIELDERS] Thairo Estrada [MOVEMENTS] Anthony Rendon home -> home [out];
+[INNING] 3 top [PLAY] Groundout [BATTER] Nick Ahmed [PITCHER] Tyler Anderson [FIELDERS] Anthony Rendon [MOVEMENTS] Nick Ahmed home -> home [out];
+[INNING] 3 top [PLAY] Lineout [BATTER] LaMonte Wade Jr. [PITCHER] Tyler Anderson [FIELDERS] Ehire Adrianza [MOVEMENTS] LaMonte Wade Jr. home -> home [out];
+[INNING] 3 top [PLAY] Walk [BATTER] Jung Hoo Lee [PITCHER] Tyler Anderson [MOVEMENTS] Jung Hoo Lee home -> 1;
+[INNING] 3 top [PLAY] Strikeout [BATTER] Matt Chapman [PITCHER] Tyler Anderson [MOVEMENTS] Matt Chapman home -> home [out];
+[INNING] 3 bottom [PLAY] Pop Out [BATTER] Aaron Hicks [PITCHER] Jordan Hicks [FIELDERS] Matt Chapman [MOVEMENTS] Aaron Hicks home -> home [out];
+[INNING] 3 bottom [PLAY] Strikeout [BATTER] Mike Trout [PITCHER] Jordan Hicks [MOVEMENTS] Mike Trout home -> home [out];
+[INNING] 3 bottom [PLAY] Lineout [BATTER] Taylor Ward [PITCHER] Jordan Hicks [FIELDERS] Jung Hoo Lee [MOVEMENTS] Taylor Ward home -> home [out];
+[INNING] 4 top [PLAY] Double [BATTER] Michael Conforto [PITCHER] Tyler Anderson [MOVEMENTS] Michael Conforto home -> 2;
+[INNING] 4 top [PLAY] Strikeout [BATTER] Jorge Soler [PITCHER] Tyler Anderson [MOVEMENTS] Jorge Soler home -> home [out];
+[INNING] 4 top [PLAY] Strikeout [BATTER] Thairo Estrada [PITCHER] Tyler Anderson [MOVEMENTS] Thairo Estrada home -> home [out];
+[INNING] 4 top [PLAY] Lineout [BATTER] Patrick Bailey [PITCHER] Tyler Anderson [FIELDERS] Tyler Anderson [MOVEMENTS] Patrick Bailey home -> home [out];
+[INNING] 4 bottom [PLAY] Strikeout [BATTER] Brandon Drury [PITCHER] Jordan Hicks [MOVEMENTS] Brandon Drury home -> home [out];
+[INNING] 4 bottom [PLAY] Strikeout [BATTER] Matt Thaiss [PITCHER] Jordan Hicks [MOVEMENTS] Matt Thaiss home -> home [out];
+[INNING] 4 bottom [PLAY] Strikeout [BATTER] Ehire Adrianza [PITCHER] Jordan Hicks [MOVEMENTS] Ehire Adrianza home -> home [out];
+[INNING] 5 top [PLAY] Double [BATTER] Mike Yastrzemski [PITCHER] Tyler Anderson [MOVEMENTS] Mike Yastrzemski home -> 2;
+[INNING] 5 top [PLAY] Groundout [BATTER] Nick Ahmed [PITCHER] Tyler Anderson [FIELDERS] Ehire Adrianza [MOVEMENTS] Nick Ahmed home -> home [out], Mike Yastrzemski 2 -> 3;
+[INNING] 5 top [PLAY] Lineout [BATTER] LaMonte Wade Jr. [PITCHER] Tyler Anderson [FIELDERS] Brandon Drury [MOVEMENTS] LaMonte Wade Jr. home -> home [out];
+[INNING] 5 top [PLAY] Double [BATTER] Jung Hoo Lee [PITCHER] Tyler Anderson [MOVEMENTS] Jung Hoo Lee home -> 2, Mike Yastrzemski 3 -> 4;
+[INNING] 5 top [PLAY] Flyout [BATTER] Matt Chapman [PITCHER] Drew Pomeranz [FIELDERS] Aaron Hicks [MOVEMENTS] Matt Chapman home -> home [out];
+[INNING] 5 bottom [PLAY] Strikeout [BATTER] Chad Wallach [PITCHER] Jordan Hicks [MOVEMENTS] Chad Wallach home -> home [out];
+[INNING] 5 bottom [PLAY] Strikeout [BATTER] Livan Soto [PITCHER] Jordan Hicks [MOVEMENTS] Livan Soto home -> home [out];
+[INNING] 5 bottom [PLAY] Walk [BATTER] Anthony Rendon [PITCHER] Jordan Hicks [MOVEMENTS] Anthony Rendon home -> 1;
+[INNING] 5 bottom [PLAY] Strikeout [BATTER] Aaron Hicks [PITCHER] Matt Frisbee [MOVEMENTS] Aaron Hicks home -> home [out];
+[INNING] 6 top [PLAY] Groundout [BATTER] Michael Conforto [PITCHER] Drew Pomeranz [FIELDERS] Arol Vera [MOVEMENTS] Michael Conforto home -> home [out];
+[INNING] 6 top [PLAY] Double [BATTER] Jorge Soler [PITCHER] Drew Pomeranz [MOVEMENTS] Jorge Soler home -> 2;
+[INNING] 6 top [PLAY] Groundout [BATTER] Thairo Estrada [PITCHER] Drew Pomeranz [FIELDERS] Ehire Adrianza [MOVEMENTS] Thairo Estrada home -> home [out], Luis Matos 2 -> 3;
+[INNING] 6 top [PLAY] Groundout [BATTER] Patrick Bailey [PITCHER] Drew Pomeranz [FIELDERS] Ehire Adrianza [MOVEMENTS] Patrick Bailey home -> home [out];
+[INNING] 6 bottom [PLAY] Single [BATTER] Mike Trout [PITCHER] Ryan Walker [MOVEMENTS] Mike Trout home -> 1;
+[INNING] 6 bottom [PLAY] Flyout [BATTER] Taylor Ward [PITCHER] Ryan Walker [FIELDERS] Ismael Munguia [MOVEMENTS] Taylor Ward home -> home [out];
+[INNING] 6 bottom [PLAY] Strikeout [BATTER] Brandon Drury [PITCHER] Ryan Walker [MOVEMENTS] Brandon Drury home -> home [out];
+[INNING] 6 bottom [PLAY] Walk [BATTER] Matt Thaiss [PITCHER] Ryan Walker [MOVEMENTS] Jorge Ruiz 1 -> 2, Matt Thaiss home -> 1;
+[INNING] 6 bottom [PLAY] Strikeout [BATTER] Ehire Adrianza [PITCHER] Ryan Walker [MOVEMENTS] Ehire Adrianza home -> home [out];
+[INNING] 7 top [PLAY] Hit By Pitch [BATTER] Mike Yastrzemski [PITCHER] Matt Moore [MOVEMENTS] Mike Yastrzemski home -> 1;
+[INNING] 7 top [PLAY] Walk [BATTER] Nick Ahmed [PITCHER] Matt Moore [MOVEMENTS] Tyler Fitzgerald 1 -> 2, Nick Ahmed home -> 1;
+[INNING] 7 top [PLAY] Sac Fly [BATTER] LaMonte Wade Jr. [PITCHER] Matt Moore [FIELDERS] Joe Redfield [SCORING_RUNNER] Marco Luciano [MOVEMENTS] Tyler Fitzgerald 2 -> 3, Marco Luciano 1 -> 2, LaMonte Wade Jr. home -> home [out], Tyler Fitzgerald 3 -> 4;
+[INNING] 7 top [PLAY] Strikeout [BATTER] Ismael Munguia [PITCHER] Matt Moore [MOVEMENTS] Ismael Munguia home -> home [out];
+[INNING] 7 top [PLAY] Hit By Pitch [BATTER] Matt Chapman [PITCHER] Matt Moore [MOVEMENTS] Marco Luciano 2 -> 3, Matt Chapman home -> 1;
+[INNING] 7 top [PLAY] Groundout [BATTER] Michael Conforto [PITCHER] Zac Kristofak [FIELDERS] Arol Vera [MOVEMENTS] Michael Conforto home -> home [out];
+[INNING] 7 bottom [PLAY] Groundout [BATTER] Zach Humphreys [PITCHER] Nick Avila [FIELDERS] Nick Avila [MOVEMENTS] Zach Humphreys home -> home [out];
+[INNING] 7 bottom [PLAY] Triple [BATTER] Livan Soto [PITCHER] Nick Avila [MOVEMENTS] Livan Soto home -> 3;
+[INNING] 7 bottom [PLAY] Fielders Choice Out [BATTER] Arol Vera [PITCHER] Nick Avila [FIELDERS] Nick Avila [SCORING_RUNNER] Arol Vera [MOVEMENTS] Livan Soto 3 -> home [out], Arol Vera home -> 1, Arol Vera 1 -> 2;
+[INNING] 7 bottom [PLAY] Groundout [BATTER] Tucker Flint [PITCHER] Nick Avila [FIELDERS] Pablo Sandoval [MOVEMENTS] Tucker Flint home -> home [out];
+[INNING] 8 top [PLAY] Single [BATTER] Luis Matos [PITCHER] Luis García [MOVEMENTS] Luis Matos home -> 1;
+[INNING] 8 top [PLAY] Double [BATTER] Blake Sabol [PITCHER] Luis García [MOVEMENTS] Blake Sabol home -> 2, Luis Matos 1 -> 3;
+[INNING] 8 top [PLAY] Double [BATTER] Joey Bart [PITCHER] Luis García [MOVEMENTS] Joey Bart home -> 2, Blake Sabol 2 -> 3, Luis Matos 3 -> 4;
+[INNING] 8 top [PLAY] Strikeout [BATTER] Tyler Fitzgerald [PITCHER] Luis García [MOVEMENTS] Tyler Fitzgerald home -> home [out];
+[INNING] 8 top [PLAY] Single [BATTER] Marco Luciano [PITCHER] Luis García [MOVEMENTS] Marco Luciano home -> 1, Joey Bart 2 -> 4, Blake Sabol 3 -> 4;
+[INNING] 8 top [PLAY] Strikeout [BATTER] LaMonte Wade Jr. [PITCHER] Luis García [MOVEMENTS] LaMonte Wade Jr. home -> home [out], Marco Luciano 1 -> 2;
+[INNING] 8 top [PLAY] Flyout [BATTER] Ismael Munguia [PITCHER] Luis García [FIELDERS] Joe Redfield [MOVEMENTS] Ismael Munguia home -> home [out];
+[INNING] 8 bottom [PLAY] Flyout [BATTER] Jorge Ruiz [PITCHER] Nick Avila [FIELDERS] LaMonte Wade Jr. [MOVEMENTS] Jorge Ruiz home -> home [out];
+[INNING] 8 bottom [PLAY] Pop Out [BATTER] Joe Redfield [PITCHER] Nick Avila [FIELDERS] Tyler Fitzgerald [MOVEMENTS] Joe Redfield home -> home [out];
+[INNING] 8 bottom [PLAY] Strikeout [BATTER] Sam Brown [PITCHER] Nick Avila [MOVEMENTS] Sam Brown home -> home [out];
+[INNING] 9 top [PLAY] Strikeout [BATTER] Jimmy Glowenke [PITCHER] Adam Cimber [MOVEMENTS] Jimmy Glowenke home -> home [out];
+[INNING] 9 top [PLAY] Strikeout [BATTER] Pablo Sandoval [PITCHER] Adam Cimber [MOVEMENTS] Pablo Sandoval home -> home [out];
+[INNING] 9 top [PLAY] Strikeout [BATTER] Luis Matos [PITCHER] Adam Cimber [MOVEMENTS] Luis Matos home -> home [out];
+[INNING] 9 bottom [PLAY] Double [BATTER] Matt Thaiss [PITCHER] Nick Avila [MOVEMENTS] Matt Thaiss home -> 2;
+[INNING] 9 bottom [PLAY] Single [BATTER] Andy Blake [PITCHER] Nick Avila [MOVEMENTS] Andy Blake home -> 1, Matt Thaiss 2 -> 4;
+[INNING] 9 bottom [PLAY] Strikeout [BATTER] Zach Humphreys [PITCHER] Nick Avila [MOVEMENTS] Zach Humphreys home -> home [out];
+[INNING] 9 bottom [PLAY] Pop Out [BATTER] Mac McCroskey [PITCHER] Nick Avila [FIELDERS] Pablo Sandoval [MOVEMENTS] Mac McCroskey home -> home [out];
+[INNING] 9 bottom [PLAY] Strikeout [BATTER] Arol Vera [PITCHER] Nick Avila [MOVEMENTS] Arol Vera home -> home [out];
+[GAME_END]
