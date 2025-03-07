@@ -107,6 +107,7 @@ static TEAM_SECTION_PLAYER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     PLAYER_NAME,
 ).as_str()).unwrap());
 
+const PLAY_SECTION_GAME_START: &str = "[GAME_START]";
 static PLAY_SECTION_INNING_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[INNING\] (?P<number>\d+) (?P<top_bottom>top|bottom)").unwrap());
 static ALL_PLAY_TYPES: Lazy<String> = Lazy::new(|| {
     let mut play_types = Vec::new();
@@ -150,6 +151,8 @@ static PLAY_SECTION_SCORING_RUNNER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(
 const PLAY_SECTION_MOVEMENTS_TAG: &str = "[MOVEMENTS]";
 const PLAY_SECTION_ARROW: &str = "->";
 const PLAY_SECTION_OUT: &str = "[out]";
+const PLAY_SECTION_PLAY_END: &str = ";";
+const PLAY_SECTION_GAME_END: &str = "[GAME_END]";
 
 static INITIAL_NEWLINES_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\n+").unwrap());
 
@@ -344,8 +347,8 @@ impl Parser {
     fn parse_play_section(&mut self, play_section: PlaySection) -> PyResult<(bool, HashSet<char>)> {
         match play_section {
             PlaySection::GameStart() => {
-                if self.input_buffer.starts_with("[GAME_START]") {
-                    self.consume_input("[GAME_START]".len());
+                if self.input_buffer.starts_with(PLAY_SECTION_GAME_START) {
+                    self.consume_input(PLAY_SECTION_GAME_START.len());
                     self.possible_sections = vec![GameSection::Plays(PlaySection::Inning())];
 
                     return Ok((true, HashSet::new()));
@@ -809,8 +812,8 @@ impl Parser {
                 }
             },
             PlaySection::PlayEnd() => {
-                if self.input_buffer.starts_with(";") {
-                    self.consume_input(1);
+                if self.input_buffer.starts_with(PLAY_SECTION_PLAY_END) {
+                    self.consume_input(PLAY_SECTION_PLAY_END.len());
 
                     self.game_builder.build_play();
 
@@ -825,8 +828,8 @@ impl Parser {
                 return Ok((false, HashSet::new()));
             },
             PlaySection::GameEnd() => {
-                if self.input_buffer.starts_with("[GAME_END]") {
-                    self.consume_input("[GAME_END]".len());
+                if self.input_buffer.starts_with(PLAY_SECTION_GAME_END) {
+                    self.consume_input(PLAY_SECTION_GAME_END.len());
                     self.finished = true;
 
                     return Ok((true, HashSet::new()));
@@ -905,6 +908,50 @@ impl Parser {
         } else {
             None
         }
+    }
+
+    /// Return the regexes of the current possible sections.
+    fn current_regexes(&self) -> Vec<String> {
+        self.possible_sections.iter().map(|section| {
+            match section {
+                GameSection::Context(ContextSection::Game) => CONTEXT_SECTION_GAME_REGEX.as_str().to_string(),
+                GameSection::Context(ContextSection::Date) => CONTEXT_SECTION_DATE_REGEX.as_str().to_string(),
+                GameSection::Context(ContextSection::Venue) => CONTEXT_SECTION_VENUE_REGEX.as_str().to_string(),
+                GameSection::Context(ContextSection::Weather) => CONTEXT_SECTION_WEATHER_REGEX.as_str().to_string(),
+
+                GameSection::HomeTeam(TeamSection::Team) => TEAM_SECTION_TEAM_REGEX.as_str().to_string(),
+                GameSection::HomeTeam(TeamSection::Player) => TEAM_SECTION_PLAYER_REGEX.as_str().to_string(),
+                GameSection::AwayTeam(TeamSection::Team) => TEAM_SECTION_TEAM_REGEX.as_str().to_string(),
+                GameSection::AwayTeam(TeamSection::Player) => TEAM_SECTION_PLAYER_REGEX.as_str().to_string(),
+
+                GameSection::Plays(PlaySection::GameStart()) => format!("^{}", PLAY_SECTION_GAME_START),
+                GameSection::Plays(PlaySection::Inning()) => PLAY_SECTION_INNING_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Play()) => PLAY_SECTION_PLAY_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Base()) => PLAY_SECTION_BASE_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Batter()) => PLAY_SECTION_BATTER_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Pitcher()) => PLAY_SECTION_PITCHER_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Catcher()) => PLAY_SECTION_CATCHER_REGEX.as_str().to_string(),
+
+                GameSection::Plays(PlaySection::Fielders(FieldersSection::Tag)) => format!("^{}", PLAY_SECTION_FIELDERS_TAG),
+                GameSection::Plays(PlaySection::Fielders(FieldersSection::Name)) => PLAYER_NAME_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Fielders(FieldersSection::CommaSpace)) => format!("^{}", COMMA_SPACE),
+
+                GameSection::Plays(PlaySection::Runner()) => PLAY_SECTION_RUNNER_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::ScoringRunner()) => PLAY_SECTION_SCORING_RUNNER_REGEX.as_str().to_string(),
+
+                GameSection::Plays(PlaySection::Movements(MovementsSection::Tag)) => format!("^{}", PLAY_SECTION_MOVEMENTS_TAG),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::Name)) => PLAYER_NAME_BASE_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::StartBase)) => BASE_NAME_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::Arrow)) => format!("^{}", PLAY_SECTION_ARROW),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::EndBase)) => BASE_NAME_REGEX.as_str().to_string(),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::Out)) => format!("^{}?", PLAY_SECTION_OUT),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::CommaSpace)) => format!("^{}", COMMA_SPACE),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::MovementEnd)) => unreachable!(),
+
+                GameSection::Plays(PlaySection::PlayEnd()) => format!("^{}", PLAY_SECTION_PLAY_END),
+                GameSection::Plays(PlaySection::GameEnd()) => format!("^{}", PLAY_SECTION_GAME_END),
+            }
+        }).collect()
     }
 }
 
