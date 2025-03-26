@@ -1,11 +1,12 @@
 mod game;
 
-use game::{Base, Game, GameBuilder, Inning, PlayType, Player, Position, TopBottom};
+use std::collections::HashSet;
+
+use game::{Base, BaseComparison, Game, GameBuilder, Inning, Movement, PlayType, Player, Position, TopBottom};
 use once_cell::sync::Lazy;
-use pyo3::prelude::{PyResult, pyclass, pymethods};
+use pyo3::{prelude::{pyclass, pymethods, PyResult}, exceptions::PyValueError};
 use fancy_regex::Regex;
 use strum::IntoEnumIterator;
-use std::collections::HashSet;
 
 #[pyclass(eq, eq_int)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -156,6 +157,123 @@ const PLAY_SECTION_GAME_END: &str = "[GAME_END]";
 
 static INITIAL_NEWLINES_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\n+").unwrap());
 
+#[derive(Clone, Debug)]
+struct RunnerPositions {
+    pub home: Option<String>,
+    pub first: Option<String>,
+    pub second: Option<String>,
+    pub third: Option<String>,
+}
+
+impl RunnerPositions {
+    pub fn empty() -> Self {
+        Self {
+            home: None,
+            first: None,
+            second: None,
+            third: None,
+        }
+    }
+
+    /// Group any chains of movements by the same runner into a single movement.
+    fn simplify_movements(&self, movements: &Vec<Movement>) -> Vec<Movement> {
+        let runners = HashSet::<String>::from_iter(movements.iter().map(|m| m.runner.clone()));
+        // println!("runners: {:#?}", runners);
+
+        let mut simplified_movements = Vec::new();
+        for runner in runners {
+            // println!("runner: {:#?}", runner);
+
+            let froms = movements.iter().filter(|m| m.runner == runner).map(|m| m.from).collect::<Vec<_>>();
+            let tos = movements.iter().filter(|m| m.runner == runner).map(|m| m.to).collect::<Vec<_>>();
+
+            let from = froms.iter().min_by(|a, b| a.compare(b, BaseComparison::From)).unwrap();
+            let to = tos.iter().max_by(|a, b| a.compare(b, BaseComparison::To)).unwrap();
+
+            let out = movements.iter().any(|m| m.runner == runner && m.out);
+
+            simplified_movements.push(Movement { runner, from: *from, to: *to, out });
+        }
+
+        simplified_movements
+    }
+
+    pub fn process_movements(&mut self, movements: &Vec<Movement>, pinch_runners: &Vec<String>) -> Result<(), String> {
+        let movements = self.simplify_movements(movements);
+        // println!("movements: {:#?}", movements);
+
+        let mut new_runner_positions = self.clone();
+        // println!("movements: {:#?}", movements);
+        for movement in movements {
+            // check the bases are in the correct order
+            match (movement.from.clone(), movement.to.clone()) {
+                (Base::Third, Base::Second) => return Err("Cannot move runner from third to second".to_string()),
+                (Base::Third, Base::First) => return Err("Cannot move runner from third to first".to_string()),
+                (Base::Second, Base::First) => return Err("Cannot move runner from second to first".to_string()),
+                _ => (),
+            }
+
+            // check the runner does exist on the starting base, or that it is a pinch runner
+            // println!("movement: {:#?}", movement);
+            match movement.from {
+                Base::First => match &self.first {
+                    Some(runner) => if &movement.runner != runner && !pinch_runners.contains(&movement.runner) {
+                        return Err(format!("Runner {} is not on first base and is not a pinch runner", movement.runner));
+                    },
+                    None => return Err("No runner is on first base".to_string()),
+                },
+                Base::Second => match &self.second {
+                    Some(runner) => if &movement.runner != runner && !pinch_runners.contains(&movement.runner) {
+                        return Err(format!("Runner {} is not on second base and is not a pinch runner", movement.runner));
+                    },
+                    None => return Err("No runner is on second base".to_string()),
+                },
+                Base::Third => match &self.third {
+                    Some(runner) => if &movement.runner != runner && !pinch_runners.contains(&movement.runner) {
+                        return Err(format!("Runner {} is not on third base and is not a pinch runner", movement.runner));
+                    },
+                    None => return Err("No runner is on third base".to_string()),
+                },
+                Base::Home => (),
+            }
+
+            // if the runner is not out, move the runner to the new base
+            if !movement.out {
+                match movement.to {
+                    Base::First => new_runner_positions.first = Some(movement.runner.clone()),
+                    Base::Second => new_runner_positions.second = Some(movement.runner.clone()),
+                    Base::Third => new_runner_positions.third = Some(movement.runner.clone()),
+                    Base::Home => new_runner_positions.home = Some(movement.runner.clone()),
+                }
+            }
+        }
+
+        // update the runner positions
+        *self = new_runner_positions;
+        // println!("runner positions: {:#?}", self);
+
+        Ok(())
+    }
+}
+
+struct LiveGameState {
+    pub runner_positions: RunnerPositions,
+    pub inning: Inning,
+    pub home_team_score: u64,
+    pub away_team_score: u64,
+}
+
+impl LiveGameState {
+    pub fn new() -> Self {
+        Self {
+            runner_positions: RunnerPositions::empty(),
+            inning: Inning { number: 1, top_bottom: TopBottom::Top },
+            home_team_score: 0,
+            away_team_score: 0,
+        }
+    }
+}
+
 #[pyclass]
 pub struct Parser {
     input_buffer: String,
@@ -163,6 +281,8 @@ pub struct Parser {
     game_builder: GameBuilder,
     finished: bool,
     print_debug: bool,
+    live_game_state: LiveGameState,
+    pinch_runners: Vec<String>,
 }
 
 #[pymethods]
@@ -175,12 +295,14 @@ impl Parser {
             game_builder: GameBuilder::new(),
             finished: false,
             print_debug,
+            live_game_state: LiveGameState::new(),
+            pinch_runners: Vec::new(),
         }
     }
 
     fn print_debug_message(&self) {
         println!("possible_sections: {:#?}", self.possible_sections);
-        println!("&input_buffer[..100]: {:?}", &self.input_buffer.chars().take(100).collect::<String>());
+        println!("input_buffer.take(100): {:?}", self.input_buffer.chars().take(100).collect::<String>());
         println!("movement_builder: {:#?}\n", self.game_builder.play_builder.movement_builder);
     }
 
@@ -191,7 +313,7 @@ impl Parser {
             .to_string();
     }
 
-    fn parse_context_section(&mut self, context_section: ContextSection) -> PyResult<(bool, HashSet<char>)> {
+    fn parse_context_section(&mut self, context_section: ContextSection) -> PyResult<bool> {
         match context_section {
             ContextSection::Game => {
                 let captures = CONTEXT_SECTION_GAME_REGEX.captures(&self.input_buffer);
@@ -201,13 +323,13 @@ impl Parser {
                     self.game_builder.set_game_pk(game_pk);
 
                     if game_pk_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(game_pk_match.end());
                     self.possible_sections = vec![GameSection::Context(ContextSection::Date)];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             ContextSection::Date => {
@@ -218,13 +340,13 @@ impl Parser {
                     self.game_builder.set_date(date);
 
                     if date_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(date_match.end());
                     self.possible_sections = vec![GameSection::Context(ContextSection::Venue)];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             ContextSection::Venue => {
@@ -235,13 +357,13 @@ impl Parser {
                     self.game_builder.set_venue(venue);
 
                     if venue_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(venue_match.end());
                     self.possible_sections = vec![GameSection::Context(ContextSection::Weather)];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             ContextSection::Weather => {
@@ -259,21 +381,21 @@ impl Parser {
                     self.game_builder.set_weather(weather, temperature, wind_speed);
 
                     if wind_speed_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(wind_speed_match.end());
                     self.possible_sections = vec![GameSection::HomeTeam(TeamSection::Team)];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
         }
 
-        Ok((false, HashSet::new()))
+        Ok(false)
     }
 
-    fn parse_team_section(&mut self, team_section: TeamSection, home_team: bool) -> PyResult<(bool, HashSet<char>)> {
+    fn parse_team_section(&mut self, team_section: TeamSection, home_team: bool) -> PyResult<bool> {
         match team_section {
             TeamSection::Team => {
                 let captures = TEAM_SECTION_TEAM_REGEX.captures(&self.input_buffer);
@@ -288,7 +410,7 @@ impl Parser {
                     }
 
                     if team_id_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(team_id_match.end());
@@ -299,7 +421,7 @@ impl Parser {
                         self.possible_sections = vec![GameSection::AwayTeam(TeamSection::Player)];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             TeamSection::Player => {
@@ -313,11 +435,15 @@ impl Parser {
 
                     let player = Player {
                         position,
-                        name: player_name,
+                        name: player_name.clone(),
                     };
 
+                    if position == Position::PinchRunner {
+                        self.pinch_runners.push(player_name);
+                    }
+
                     if player_name_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(player_name_match.end());
@@ -336,22 +462,22 @@ impl Parser {
                         ];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
         }
 
-        Ok((false, HashSet::new()))
+        Ok(false)
     }
 
-    fn parse_play_section(&mut self, play_section: PlaySection) -> PyResult<(bool, HashSet<char>)> {
+    fn parse_play_section(&mut self, play_section: PlaySection) -> PyResult<bool> {
         match play_section {
             PlaySection::GameStart() => {
                 if self.input_buffer.starts_with(PLAY_SECTION_GAME_START) {
                     self.consume_input(PLAY_SECTION_GAME_START.len());
                     self.possible_sections = vec![GameSection::Plays(PlaySection::Inning())];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Inning() => {
@@ -371,13 +497,18 @@ impl Parser {
                     self.game_builder.play_builder.set_inning(inning);
 
                     if top_bottom_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
+
+                    if self.live_game_state.inning.top_bottom != top_bottom {
+                        self.live_game_state.runner_positions = RunnerPositions::empty();
+                    }
+                    self.live_game_state.inning = inning;
 
                     self.consume_input(top_bottom_match.end());
                     self.possible_sections = vec![GameSection::Plays(PlaySection::Play())];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Play() => {
@@ -389,7 +520,7 @@ impl Parser {
                     self.game_builder.play_builder.set_play_type(play_type);
 
                     if play_type_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(play_type_match.end());
@@ -434,7 +565,7 @@ impl Parser {
                         ];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Base() => {
@@ -446,7 +577,7 @@ impl Parser {
                     self.game_builder.play_builder.set_base(base);
 
                     if base_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(base_match.end());
@@ -482,7 +613,7 @@ impl Parser {
                         ];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Batter() => {
@@ -494,7 +625,7 @@ impl Parser {
                     self.game_builder.play_builder.set_batter(batter);
 
                     if batter_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(batter_match.end());
@@ -526,7 +657,7 @@ impl Parser {
                         ];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Pitcher() => {
@@ -538,7 +669,7 @@ impl Parser {
                     self.game_builder.play_builder.set_pitcher(pitcher);
 
                     if pitcher_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(pitcher_match.end());
@@ -566,7 +697,7 @@ impl Parser {
                         ];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Catcher() => {
@@ -578,7 +709,7 @@ impl Parser {
                     self.game_builder.play_builder.set_catcher(catcher);
 
                     if catcher_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(catcher_match.end());
@@ -602,7 +733,7 @@ impl Parser {
                         ];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Fielders(fielders_section) => {
@@ -612,7 +743,7 @@ impl Parser {
                             self.consume_input(PLAY_SECTION_FIELDERS_TAG.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Fielders(FieldersSection::Name))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     FieldersSection::Name => {
@@ -622,7 +753,7 @@ impl Parser {
                             let player_name = player_name_match.as_str().trim().to_string();
 
                             if player_name_match.end() == self.input_buffer.len() {
-                                return Ok((false, HashSet::new()));
+                                return Ok(false);
                             }
 
                             self.game_builder.play_builder.add_fielder(player_name);
@@ -638,7 +769,7 @@ impl Parser {
                                 self.possible_sections.push(GameSection::Plays(PlaySection::Movements(MovementsSection::Tag)));
                             }
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     FieldersSection::CommaSpace => {
@@ -646,7 +777,7 @@ impl Parser {
                             self.consume_input(COMMA_SPACE.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Fielders(FieldersSection::Name))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                 }
@@ -660,7 +791,7 @@ impl Parser {
                     self.game_builder.play_builder.set_runner(runner);
 
                     if runner_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(runner_match.end());
@@ -674,7 +805,7 @@ impl Parser {
                         self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Tag))];
                     }
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::ScoringRunner() => {
@@ -686,13 +817,13 @@ impl Parser {
                     self.game_builder.play_builder.set_scoring_runner(scoring_runner);
 
                     if scoring_runner_match.end() == self.input_buffer.len() {
-                        return Ok((false, HashSet::new()));
+                        return Ok(false);
                     }
 
                     self.consume_input(scoring_runner_match.end());
                     self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Tag))];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
             },
             PlaySection::Movements(movements_section) => {
@@ -702,7 +833,7 @@ impl Parser {
                             self.consume_input(PLAY_SECTION_MOVEMENTS_TAG.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Name))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     MovementsSection::Name => {
@@ -712,7 +843,7 @@ impl Parser {
                             let mut player_name = player_name_match.as_str().trim().to_string();
 
                             if player_name_match.end() == self.input_buffer.len() {
-                                return Ok((false, HashSet::new()));
+                                return Ok(false);
                             }
 
                             player_name = player_name.trim().to_string();
@@ -721,7 +852,7 @@ impl Parser {
                             self.consume_input(player_name_match.end());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::StartBase))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     MovementsSection::StartBase => {
@@ -733,13 +864,13 @@ impl Parser {
                             self.game_builder.play_builder.movement_builder.set_from(base);
 
                             if base_match.end() == self.input_buffer.len() {
-                                return Ok((false, HashSet::new()));
+                                return Ok(false);
                             }
 
                             self.consume_input(base_match.end());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Arrow))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     MovementsSection::Arrow => {
@@ -747,7 +878,7 @@ impl Parser {
                             self.consume_input(PLAY_SECTION_ARROW.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::EndBase))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     MovementsSection::EndBase => {
@@ -759,7 +890,7 @@ impl Parser {
                             self.game_builder.play_builder.movement_builder.set_to(base);
 
                             if base_match.end() == self.input_buffer.len() {
-                                return Ok((false, HashSet::new()));
+                                return Ok(false);
                             }
 
                             self.consume_input(base_match.end());
@@ -768,7 +899,7 @@ impl Parser {
                                 GameSection::Plays(PlaySection::Movements(MovementsSection::MovementEnd)),
                             ];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     MovementsSection::Out => {
@@ -776,7 +907,7 @@ impl Parser {
                             self.game_builder.play_builder.movement_builder.set_out();
 
                             if self.input_buffer.len() == PLAY_SECTION_OUT.len() {
-                                return Ok((false, HashSet::new()));
+                                return Ok(false);
                             }
 
                             self.consume_input(PLAY_SECTION_OUT.len());
@@ -785,66 +916,78 @@ impl Parser {
                                 GameSection::Plays(PlaySection::Movements(MovementsSection::MovementEnd)),
                             ];
 
-                            return Ok((true, HashSet::new()));
-                        } else if self.print_debug {
-                            println!("input does not start with `[out]`");
+                            return Ok(true);
                         }
                     },
                     MovementsSection::CommaSpace => {
                         if self.input_buffer.starts_with(COMMA_SPACE) {
+                            let _ = self.game_builder.play_builder.build_movement();
+
                             self.consume_input(COMMA_SPACE.len());
                             self.possible_sections = vec![GameSection::Plays(PlaySection::Movements(MovementsSection::Name))];
 
-                            return Ok((true, HashSet::new()));
+                            return Ok(true);
                         }
                     },
                     MovementsSection::MovementEnd => {
-                        let _ = self.game_builder.play_builder.build_movement();
-
                         self.possible_sections = vec![
                             GameSection::Plays(PlaySection::Movements(MovementsSection::Out)),
                             GameSection::Plays(PlaySection::Movements(MovementsSection::CommaSpace)),
                             GameSection::Plays(PlaySection::PlayEnd()),
                         ];
 
-                        return Ok((true, HashSet::new()));
+                        return Ok(true);
                     },
                 }
             },
             PlaySection::PlayEnd() => {
                 if self.input_buffer.starts_with(PLAY_SECTION_PLAY_END) {
+                    let _ = self.game_builder.play_builder.build_movement();
+
                     self.consume_input(PLAY_SECTION_PLAY_END.len());
 
                     self.game_builder.build_play();
+
+                    let movements = &self.game_builder.plays.last().unwrap().movements;
+                    if let Err(e) = self.live_game_state.runner_positions.process_movements(movements, &self.pinch_runners) {
+                        // println!("error while processing movements");
+                        return Err(PyValueError::new_err(format!(
+                            "Inning {}: {}",
+                            &self.game_builder.plays.last().unwrap().inning.to_string(),
+                            e,
+                        )));
+                    } else {
+                        // println!("no error while processing movements.");
+                    }
 
                     self.possible_sections = vec![
                         GameSection::Plays(PlaySection::Inning()),
                         GameSection::Plays(PlaySection::GameEnd()),
                     ];
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
 
-                return Ok((false, HashSet::new()));
+                return Ok(false);
             },
             PlaySection::GameEnd() => {
                 if self.input_buffer.starts_with(PLAY_SECTION_GAME_END) {
                     self.consume_input(PLAY_SECTION_GAME_END.len());
                     self.finished = true;
 
-                    return Ok((true, HashSet::new()));
+                    return Ok(true);
                 }
 
-                return Ok((false, HashSet::new()));
+                return Ok(false);
             },
         }
 
-        Ok((false, HashSet::new()))
+        Ok(false)
     }
 
-    fn parse_input_buffer(&mut self) -> PyResult<(bool, HashSet<char>)> {
+    fn parse_input_buffer(&mut self) -> PyResult<bool> {
         for section in self.possible_sections.clone() {
-            let (success, valid_next_chars) = match section {
+            let success = match section {
                 GameSection::Context(context_section) => {
                     if self.print_debug {
                         self.print_debug_message();
@@ -876,27 +1019,27 @@ impl Parser {
             }?;
 
             if success {
-                return Ok((success, valid_next_chars));
+                return Ok(success);
             }
         }
 
-        Ok((false, HashSet::new()))
+        Ok(false)
     }
 
     /// Stream-parse a game and return the set of valid next characters.
-    pub fn parse_input(&mut self, input: &str) -> PyResult<HashSet<char>> {
+    pub fn parse_input(&mut self, input: &str) -> PyResult<()> {
         let input = INITIAL_NEWLINES_REGEX.replace(input, "");
         self.input_buffer.push_str(&input);
 
         loop {
             if self.finished {
-                return Ok(HashSet::new());
+                return Ok(());
             }
 
-            let (success, valid_next_chars) = self.parse_input_buffer()?;
+            let success = self.parse_input_buffer()?;
 
             if !success {
-                return Ok(valid_next_chars);
+                return Ok(());
             }
         }
     }
@@ -911,7 +1054,7 @@ impl Parser {
     }
 
     /// Return the regexes of the current possible sections.
-    fn current_regexes(&self) -> Vec<String> {
+    fn valid_regexes(&self) -> Vec<String> {
         self.possible_sections.iter().map(|section| {
             match section {
                 GameSection::Context(ContextSection::Game) => CONTEXT_SECTION_GAME_REGEX.as_str().to_string(),
@@ -1126,12 +1269,12 @@ mod tests {
     fn parse_complex_play() {
         use game::{PlayContent, Movement};
         let mut parser = Parser::new(false);
-        let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 3 bottom [PLAY] Groundout [BATTER] Juan Carlos Gamboa [PITCHER] Tanner Tully [FIELDERS] Tanner Tully, Trevor Bauer [MOVEMENTS] Juan Carlos Gamboa home -> home [out], Xavier Fernández 1 -> 2;";
+        let input = "[GAME] 766493 [DATE] 2024-03-24 [VENUE] Estadio Alfredo Harp Helu [WEATHER] Sunny 85 9 [TEAM] 20 [SECOND_BASE] Robinson Canó [TEAM] 147 [THIRD_BASE] DJ LeMahieu [GAME_START] [INNING] 1 top [PLAY] Groundout [BATTER] Juan Carlos Gamboa [PITCHER] Tanner Tully [FIELDERS] Tanner Tully, Trevor Bauer [MOVEMENTS] Juan Carlos Gamboa home -> home [out], Xavier Fernández home -> 2;";
 
         let _ = parser.parse_input(input);
 
         if let Some(play) = parser.game_builder.plays.iter().next() {
-            assert!(play.inning == Inning { number: 3, top_bottom: TopBottom::Bottom });
+            assert!(play.inning == Inning { number: 1, top_bottom: TopBottom::Top });
             assert!(play.play_content == PlayContent::Groundout {
                 batter: "Juan Carlos Gamboa".to_string(),
                 pitcher: "Tanner Tully".to_string(),
@@ -1146,7 +1289,7 @@ mod tests {
                 },
                 Movement {
                     runner: "Xavier Fernández".to_string(),
-                    from: Base::First,
+                    from: Base::Home,
                     to: Base::Second,
                     out: false,
                 },
@@ -1154,19 +1297,6 @@ mod tests {
         } else {
             panic!("play is None");
         }
-    }
-
-    #[test]
-    fn parse_full_game() {
-        let mut parser = Parser::new(true);
-        let input = include_str!("../test_data/748231.txt");
-
-        let _ = parser.parse_input(&input);
-
-        assert!(parser.finished);
-
-        let game = parser.complete().unwrap();
-        println!("\ngame: {:#?}\n", game);
     }
 
     #[test]
@@ -1279,6 +1409,21 @@ mod tests {
     }
 
     #[test]
+    fn parse_full_game() {
+        pyo3::prepare_freethreaded_python();
+
+        let mut parser = Parser::new(false);
+        let input = include_str!("../test_data/748231.txt");
+
+        let _ = parser.parse_input(&input).unwrap();
+
+        assert!(parser.finished);
+
+        let game = parser.complete().unwrap();
+        // println!("\ngame: {:#?}\n", game);
+    }
+
+    #[test]
     fn parse_full_game_broken_up() {
         use rand::Rng;
 
@@ -1296,9 +1441,9 @@ mod tests {
         }
 
         for part in parts {
-            // println!("part: {:?}\n", part);
+            println!("part: {:?}\n", part);
             let _ = parser.parse_input(&part);
-            // println!("=====\n");
+            println!("=====\n");
         }
 
         assert!(parser.finished);
@@ -1312,12 +1457,15 @@ mod tests {
         use glob::glob;
         use rand::Rng;
 
+        pyo3::prepare_freethreaded_python();
+
         let paths = glob("test_data/*.txt").unwrap();
 
-        let mut parser = Parser::new(true);
+        let mut parser = Parser::new(false);
         let mut rng = rand::rng();
         for path in paths {
-            let mut input = std::fs::read_to_string(path.unwrap()).unwrap();
+            println!("path: {:?}", path.as_ref().unwrap());
+            let mut input = std::fs::read_to_string(path.as_ref().unwrap()).unwrap();
 
             let mut parts = Vec::new();
             while !input.is_empty() {
@@ -1329,7 +1477,7 @@ mod tests {
             }
 
             for part in parts {
-                let _ = parser.parse_input(&part);
+                let _ = parser.parse_input(&part).unwrap();
             }
 
             assert!(parser.finished);
@@ -1337,5 +1485,48 @@ mod tests {
             let game = parser.complete().unwrap();
             println!("\ngame: {:#?}\n", game);
         }
+    }
+
+    #[test]
+    fn test_valid_pinch_runner() {
+        let mut parser = Parser::new(false);
+        let input = "[GAME] 0 [DATE] 0000-00-00 [VENUE] example [WEATHER] example 0 0\n\n[TEAM] 1\n[PITCHER] Person A\n[PINCH_RUNNER] Person B\n\n[TEAM] 2\n[PITCHER] Person C\n\n[GAME_START]\n[INNING] 1 top [PLAY] Single [BATTER] Person D [PITCHER] Person E [MOVEMENTS] Person D home -> 1;\n[INNING] 1 top [PLAY] Single [BATTER] Person Z [PITCHER] Person E [MOVEMENTS] Person Z home -> 1, Person B 1 -> 2;\n[GAME_END]";
+
+        let result = parser.parse_input(input);
+
+        assert!(parser.finished);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_invalid_pinch_runner() {
+        let mut parser = Parser::new(false);
+        let input = "[GAME] 0 [DATE] 0000-00-00 [VENUE] example [WEATHER] example 0 0\n\n[TEAM] 1\n[PITCHER] Person A\n\n[TEAM] 2\n[PITCHER] Person C\n\n[GAME_START]\n[INNING] 1 top [PLAY] Single [BATTER] Person D [PITCHER] Person E [MOVEMENTS] Person D home -> 1;\n[INNING] 1 top [PLAY] Single [BATTER] Person Z [PITCHER] Person E [MOVEMENTS] Person Z home -> 1, Person B 1 -> 2;\n[GAME_END]";
+
+        println!("input: {}\n\n=====\n\n", input);
+        let result = parser.parse_input(input);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn simplify_movements() {
+        let mut runner_positions = RunnerPositions::empty();
+        runner_positions.home = Some("Garrett Hampson".to_string());
+        runner_positions.first = Some("Cam Devanney".to_string());
+        runner_positions.third = Some("Freddy Fermin".to_string());
+
+        let movements = vec![
+            Movement { runner: "Freddy Fermin".to_string(), from: Base::Third, to: Base::Home, out: false },
+            Movement { runner: "Cam Devanney".to_string(), from: Base::First, to: Base::Second, out: false },
+            Movement { runner: "Garrett Hampson".to_string(), from: Base::Home, to: Base::Home, out: true },
+        ];
+
+        let simplified_movements = runner_positions.simplify_movements(&movements);
+        assert_eq!(HashSet::<_>::from_iter(simplified_movements), HashSet::from([
+            Movement { runner: "Freddy Fermin".to_string(), from: Base::Third, to: Base::Home, out: false },
+            Movement { runner: "Cam Devanney".to_string(), from: Base::First, to: Base::Second, out: false },
+            Movement { runner: "Garrett Hampson".to_string(), from: Base::Home, to: Base::Home, out: true },
+        ]));
     }
 }

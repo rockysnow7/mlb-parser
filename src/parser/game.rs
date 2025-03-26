@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use pyo3::pyclass;
 use strum_macros::EnumIter;
 
@@ -16,7 +18,7 @@ pub struct Context {
     weather: Weather,
 }
 
-#[derive(Clone, EnumIter, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, EnumIter, PartialEq, Eq, Debug)]
 pub enum Position {
     Pitcher,
     Catcher,
@@ -103,10 +105,19 @@ pub struct Team {
     players: Vec<Player>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TopBottom {
     Top,
     Bottom,
+}
+
+impl ToString for TopBottom {
+    fn to_string(&self) -> String {
+        match self {
+            TopBottom::Top => "top",
+            TopBottom::Bottom => "bottom",
+        }.to_string()
+    }
 }
 
 impl std::str::FromStr for TopBottom {
@@ -121,18 +132,52 @@ impl std::str::FromStr for TopBottom {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Inning {
     pub number: u64,
     pub top_bottom: TopBottom,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+impl ToString for Inning {
+    fn to_string(&self) -> String {
+        format!("{} {}", self.number, self.top_bottom.to_string())
+    }
+}
+
+pub enum BaseComparison {
+    From,
+    To,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Base {
     Home,
     First,
     Second,
     Third,
+}
+
+impl Base {
+    pub fn compare(&self, other: &Base, comparison: BaseComparison) -> Ordering {
+        match (comparison, self, other) {
+            (BaseComparison::From, Base::Home, _) => Ordering::Less,
+            (BaseComparison::From, _, Base::Home) => Ordering::Greater,
+            (BaseComparison::To, Base::Home, _) => Ordering::Greater,
+            (BaseComparison::To, _, Base::Home) => Ordering::Less,
+            _ => self.cmp(other),
+        }
+    }
+}
+
+impl ToString for Base {
+    fn to_string(&self) -> String {
+        match self {
+            Base::Home => "home".to_string(),
+            Base::First => "1".to_string(),
+            Base::Second => "2".to_string(),
+            Base::Third => "3".to_string(),
+        }
+    }
 }
 
 impl std::str::FromStr for Base {
@@ -660,12 +705,24 @@ impl PlayType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Movement {
     pub runner: String,
     pub from: Base,
     pub to: Base,
     pub out: bool,
+}
+
+impl ToString for Movement {
+    fn to_string(&self) -> String {
+        format!(
+            "{} {} -> {}{}",
+            self.runner,
+            self.from.to_string(),
+            self.to.to_string(),
+            if self.out { " [out]" } else { "" }
+        )
+    }
 }
 
 #[derive(Debug)]
