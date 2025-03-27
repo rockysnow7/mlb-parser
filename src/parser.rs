@@ -8,6 +8,19 @@ use pyo3::{prelude::{pyclass, pymethods, PyResult}, exceptions::PyValueError};
 use fancy_regex::Regex;
 use strum::IntoEnumIterator;
 
+const LPAREN_REGEX: &str = r"\[";
+const SINGLE_NAME_CHAR_REGEX: &str = r"[a-zA-ZÀ-ÖØ-öø-ÿ.'\- ]";
+const COMMA_REGEX: &str = r",";
+const BASE_NAME_START_REGEX: &str = r"1|2|3|4|h";
+const ARROW_START_REGEX: &str = r"-";
+const SEMICOLON_REGEX: &str = r";";
+
+const COMMA_OR_LPAREN_REGEX: &str = r",|\[";
+const COMMA_OR_SEMICOLON: &str = r",|;";
+const COMMA_OR_LPAREN_OR_SEMICOLON: &str = r",|\[|;";
+
+const CAPTURE_GROUP_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"\?P<[^>]+>").unwrap());
+
 #[pyclass(eq, eq_int)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum ContextSection {
@@ -17,11 +30,23 @@ enum ContextSection {
     Weather,
 }
 
+impl ContextSection {
+    fn next_possible_chars(&self) -> &str {
+        LPAREN_REGEX
+    }
+}
+
 #[pyclass(eq, eq_int)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum TeamSection {
     Team,
     Player,
+}
+
+impl TeamSection {
+    fn next_possible_chars(&self) -> &str {
+        LPAREN_REGEX
+    }
 }
 
 #[pyclass(eq, eq_int)]
@@ -30,6 +55,16 @@ enum FieldersSection {
     Tag,
     Name,
     CommaSpace,
+}
+
+impl FieldersSection {
+    fn next_possible_chars(&self) -> &str {
+        match self {
+            FieldersSection::Tag => SINGLE_NAME_CHAR_REGEX,
+            FieldersSection::Name => COMMA_OR_LPAREN_REGEX,
+            FieldersSection::CommaSpace => SINGLE_NAME_CHAR_REGEX,
+        }
+    }
 }
 
 #[pyclass(eq, eq_int)]
@@ -43,6 +78,21 @@ enum MovementsSection {
     Out,
     CommaSpace,
     MovementEnd,
+}
+
+impl MovementsSection {
+    fn next_possible_chars(&self) -> &str {
+        match self {
+            MovementsSection::Tag => SINGLE_NAME_CHAR_REGEX,
+            MovementsSection::Name => BASE_NAME_START_REGEX,
+            MovementsSection::StartBase => ARROW_START_REGEX,
+            MovementsSection::Arrow => BASE_NAME_START_REGEX,
+            MovementsSection::EndBase => COMMA_OR_LPAREN_OR_SEMICOLON,
+            MovementsSection::Out => COMMA_OR_SEMICOLON,
+            MovementsSection::CommaSpace => SINGLE_NAME_CHAR_REGEX,
+            MovementsSection::MovementEnd => LPAREN_REGEX,
+        }
+    }
 }
 
 #[pyclass(eq)]
@@ -63,6 +113,17 @@ enum PlaySection {
     GameEnd(),
 }
 
+impl PlaySection {
+    fn next_possible_chars(&self) -> &str {
+        match self {
+            PlaySection::GameStart() | PlaySection::Inning() | PlaySection::Play() | PlaySection::Base() | PlaySection::Batter() | PlaySection::Pitcher() | PlaySection::Catcher() | PlaySection::Runner() | PlaySection::ScoringRunner() | PlaySection::PlayEnd() => LPAREN_REGEX,
+            PlaySection::Fielders(fielders_section) => fielders_section.next_possible_chars(),
+            PlaySection::Movements(movements_section) => movements_section.next_possible_chars(),
+            PlaySection::GameEnd() => "",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum GameSection {
     Context(ContextSection),
@@ -71,7 +132,17 @@ enum GameSection {
     Plays(PlaySection),
 }
 
-const BASE_NAME: &str = r"\s*(1|2|3|4|home)\s*";
+impl GameSection {
+    fn next_possible_chars(&self) -> &str {
+        match self {
+            GameSection::Context(context_section) => context_section.next_possible_chars(),
+            GameSection::HomeTeam(team_section) | GameSection::AwayTeam(team_section) => team_section.next_possible_chars(),
+            GameSection::Plays(play_section) => play_section.next_possible_chars(),
+        }
+    }
+}
+
+const BASE_NAME: &str = r"[ \n]*(1|2|3|4|home)[ \n]*";
 static BASE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^({})",
     BASE_NAME,
@@ -88,12 +159,12 @@ static PLAYER_NAME_BASE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     BASE_NAME,
 ).as_str()).unwrap());
 
-static CONTEXT_SECTION_GAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[GAME\] (?P<game_pk>\d+)").unwrap());
+static CONTEXT_SECTION_GAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[GAME\] (?P<game_pk>\d{1,6})").unwrap());
 static CONTEXT_SECTION_DATE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[DATE\] (?P<date>\d{4}-\d{2}-\d{2})").unwrap());
 static CONTEXT_SECTION_VENUE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[VENUE\] (?P<venue>[a-zA-ZÀ-ÖØ-öø-ÿ ]+)").unwrap());
-static CONTEXT_SECTION_WEATHER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[WEATHER\] (?P<weather>[a-zA-ZÀ-ÖØ-öø-ÿ ]+) (?P<temperature>\d+) (?P<wind_speed>\d+)").unwrap());
+static CONTEXT_SECTION_WEATHER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[WEATHER\] (?P<weather>[a-zA-ZÀ-ÖØ-öø-ÿ ]+) (?P<temperature>\d{1,3}) (?P<wind_speed>\d{1,3})").unwrap());
 
-static TEAM_SECTION_TEAM_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[TEAM\] (?P<team_id>\d+)").unwrap());
+static TEAM_SECTION_TEAM_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[TEAM\] (?P<team_id>\d{1,3})").unwrap());
 static ALL_POSITIONS: Lazy<String> = Lazy::new(|| {
     let mut positions = Vec::new();
     for position in Position::iter() {
@@ -109,7 +180,7 @@ static TEAM_SECTION_PLAYER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
 ).as_str()).unwrap());
 
 const PLAY_SECTION_GAME_START: &str = "[GAME_START]";
-static PLAY_SECTION_INNING_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[INNING\] (?P<number>\d+) (?P<top_bottom>top|bottom)").unwrap());
+static PLAY_SECTION_INNING_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\[INNING\] (?P<number>\d{1,2}) (?P<top_bottom>top|bottom)").unwrap());
 static ALL_PLAY_TYPES: Lazy<String> = Lazy::new(|| {
     let mut play_types = Vec::new();
     for play_type in PlayType::iter() {
@@ -279,6 +350,7 @@ pub struct Parser {
     input_buffer: String,
     possible_sections: Vec<GameSection>,
     game_builder: GameBuilder,
+    #[pyo3(get)]
     finished: bool,
     print_debug: bool,
     live_game_state: LiveGameState,
@@ -302,8 +374,8 @@ impl Parser {
 
     fn print_debug_message(&self) {
         println!("possible_sections: {:#?}", self.possible_sections);
-        println!("input_buffer.take(100): {:?}", self.input_buffer.chars().take(100).collect::<String>());
-        println!("movement_builder: {:#?}\n", self.game_builder.play_builder.movement_builder);
+        // println!("input_buffer.take(100): {:?}", self.input_buffer.chars().take(100).collect::<String>());
+        // println!("movement_builder: {:#?}\n", self.game_builder.play_builder.movement_builder);
     }
 
     fn consume_input(&mut self, index: usize) {
@@ -1054,7 +1126,7 @@ impl Parser {
     }
 
     /// Return the regexes of the current possible sections.
-    fn valid_regexes(&self) -> Vec<String> {
+    fn valid_regexes_for_current_possible_sections(&self) -> Vec<String> {
         self.possible_sections.iter().map(|section| {
             match section {
                 GameSection::Context(ContextSection::Game) => CONTEXT_SECTION_GAME_REGEX.as_str().to_string(),
@@ -1067,7 +1139,7 @@ impl Parser {
                 GameSection::AwayTeam(TeamSection::Team) => TEAM_SECTION_TEAM_REGEX.as_str().to_string(),
                 GameSection::AwayTeam(TeamSection::Player) => TEAM_SECTION_PLAYER_REGEX.as_str().to_string(),
 
-                GameSection::Plays(PlaySection::GameStart()) => format!("^{}", PLAY_SECTION_GAME_START),
+                GameSection::Plays(PlaySection::GameStart()) => format!("^{}", PLAY_SECTION_GAME_START).replace("[", r"\[").replace("]", r"\]"),
                 GameSection::Plays(PlaySection::Inning()) => PLAY_SECTION_INNING_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::Play()) => PLAY_SECTION_PLAY_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::Base()) => PLAY_SECTION_BASE_REGEX.as_str().to_string(),
@@ -1075,26 +1147,49 @@ impl Parser {
                 GameSection::Plays(PlaySection::Pitcher()) => PLAY_SECTION_PITCHER_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::Catcher()) => PLAY_SECTION_CATCHER_REGEX.as_str().to_string(),
 
-                GameSection::Plays(PlaySection::Fielders(FieldersSection::Tag)) => format!("^{}", PLAY_SECTION_FIELDERS_TAG),
+                GameSection::Plays(PlaySection::Fielders(FieldersSection::Tag)) => format!("^{}", PLAY_SECTION_FIELDERS_TAG).replace("[", r"\[").replace("]", r"\]"),
                 GameSection::Plays(PlaySection::Fielders(FieldersSection::Name)) => PLAYER_NAME_REGEX.as_str().to_string(),
-                GameSection::Plays(PlaySection::Fielders(FieldersSection::CommaSpace)) => format!("^{}", COMMA_SPACE),
+                GameSection::Plays(PlaySection::Fielders(FieldersSection::CommaSpace)) => format!("^{}", COMMA_SPACE).replace("[", r"\[").replace("]", r"\]"),
 
                 GameSection::Plays(PlaySection::Runner()) => PLAY_SECTION_RUNNER_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::ScoringRunner()) => PLAY_SECTION_SCORING_RUNNER_REGEX.as_str().to_string(),
 
-                GameSection::Plays(PlaySection::Movements(MovementsSection::Tag)) => format!("^{}", PLAY_SECTION_MOVEMENTS_TAG),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::Tag)) => format!("^{}", PLAY_SECTION_MOVEMENTS_TAG).replace("[", r"\[").replace("]", r"\]"),
                 GameSection::Plays(PlaySection::Movements(MovementsSection::Name)) => PLAYER_NAME_BASE_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::Movements(MovementsSection::StartBase)) => BASE_NAME_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::Movements(MovementsSection::Arrow)) => format!("^{}", PLAY_SECTION_ARROW),
                 GameSection::Plays(PlaySection::Movements(MovementsSection::EndBase)) => BASE_NAME_REGEX.as_str().to_string(),
-                GameSection::Plays(PlaySection::Movements(MovementsSection::Out)) => format!("^{}?", PLAY_SECTION_OUT),
+                GameSection::Plays(PlaySection::Movements(MovementsSection::Out)) => format!("^{}?", PLAY_SECTION_OUT).replace("[", r"\[").replace("]", r"\]"),
                 GameSection::Plays(PlaySection::Movements(MovementsSection::CommaSpace)) => format!("^{}", COMMA_SPACE),
                 GameSection::Plays(PlaySection::Movements(MovementsSection::MovementEnd)) => unreachable!(),
 
                 GameSection::Plays(PlaySection::PlayEnd()) => format!("^{}", PLAY_SECTION_PLAY_END),
-                GameSection::Plays(PlaySection::GameEnd()) => format!("^{}", PLAY_SECTION_GAME_END),
+                GameSection::Plays(PlaySection::GameEnd()) => format!("^{}", PLAY_SECTION_GAME_END).replace("[", r"\[").replace("]", r"\]"),
             }
         }).collect()
+    }
+
+    pub fn valid_regex(&self) -> String {
+        let current_regexes = self.valid_regexes_for_current_possible_sections();
+        let next_chars = self.possible_sections
+            .iter()
+            .map(|section| section.next_possible_chars())
+            .map(|next_chars| if next_chars == "," {
+                format!("({})", next_chars)
+            } else {
+                format!(" ({})", next_chars)
+            })
+            .collect::<Vec<_>>();
+
+        let mut valid_regexes = vec![];
+        for (current_regex, next_char) in current_regexes.iter().zip(next_chars.iter()) {
+            valid_regexes.push(format!("({}{})", current_regex, next_char).trim_end().to_string());
+        }
+
+        let joined = valid_regexes.join("|");
+        let joined = CAPTURE_GROUP_REGEX.replace_all(&joined, "").to_string();
+
+        joined
     }
 }
 
