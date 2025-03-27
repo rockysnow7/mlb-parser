@@ -10,14 +10,13 @@ use strum::IntoEnumIterator;
 
 const LPAREN_REGEX: &str = r"\[";
 const SINGLE_NAME_CHAR_REGEX: &str = r"[a-zA-ZÀ-ÖØ-öø-ÿ.'\- ]";
-const COMMA_REGEX: &str = r",";
 const BASE_NAME_START_REGEX: &str = r"1|2|3|4|h";
 const ARROW_START_REGEX: &str = r"-";
-const SEMICOLON_REGEX: &str = r";";
 
-const COMMA_OR_LPAREN_REGEX: &str = r",|\[";
+const COMMA_SPACE: &str = r", ";
+const COMMA_SPACE_OR_LPAREN: &str = r", | \[";
 const COMMA_OR_SEMICOLON: &str = r",|;";
-const COMMA_OR_LPAREN_OR_SEMICOLON: &str = r",|\[|;";
+const COMMA_SPACE_OR_LPAREN_OR_SEMICOLON: &str = r", |\[|;";
 
 const CAPTURE_GROUP_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"\?P<[^>]+>").unwrap());
 
@@ -61,7 +60,7 @@ impl FieldersSection {
     fn next_possible_chars(&self) -> &str {
         match self {
             FieldersSection::Tag => SINGLE_NAME_CHAR_REGEX,
-            FieldersSection::Name => COMMA_OR_LPAREN_REGEX,
+            FieldersSection::Name => COMMA_SPACE_OR_LPAREN,
             FieldersSection::CommaSpace => SINGLE_NAME_CHAR_REGEX,
         }
     }
@@ -87,7 +86,7 @@ impl MovementsSection {
             MovementsSection::Name => BASE_NAME_START_REGEX,
             MovementsSection::StartBase => ARROW_START_REGEX,
             MovementsSection::Arrow => BASE_NAME_START_REGEX,
-            MovementsSection::EndBase => COMMA_OR_LPAREN_OR_SEMICOLON,
+            MovementsSection::EndBase => COMMA_SPACE_OR_LPAREN_OR_SEMICOLON,
             MovementsSection::Out => COMMA_OR_SEMICOLON,
             MovementsSection::CommaSpace => SINGLE_NAME_CHAR_REGEX,
             MovementsSection::MovementEnd => LPAREN_REGEX,
@@ -142,19 +141,18 @@ impl GameSection {
     }
 }
 
-const BASE_NAME: &str = r"[ \n]*(1|2|3|4|home)[ \n]*";
+const BASE_NAME: &str = r" ?(1|2|3|4|home) ?";
 static BASE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^({})",
     BASE_NAME,
 ).as_str()).unwrap());
-const COMMA_SPACE: &str = ", ";
 const PLAYER_NAME: &str = r"[a-zA-ZÀ-ÖØ-öø-ÿ.'\- ]+";
 static PLAYER_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
     r"^{}",
     PLAYER_NAME,
 ).as_str()).unwrap());
 static PLAYER_NAME_BASE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(format!(
-    r"^({}?)(?=\s*({})\b)",
+    r"^({}?)(?= ?({})\b)",
     PLAYER_NAME,
     BASE_NAME,
 ).as_str()).unwrap());
@@ -374,7 +372,7 @@ impl Parser {
 
     fn print_debug_message(&self) {
         println!("possible_sections: {:#?}", self.possible_sections);
-        // println!("input_buffer.take(100): {:?}", self.input_buffer.chars().take(100).collect::<String>());
+        println!("input_buffer.take(100): {:?}", self.input_buffer.chars().take(100).collect::<String>());
         // println!("movement_builder: {:#?}\n", self.game_builder.play_builder.movement_builder);
     }
 
@@ -644,7 +642,7 @@ impl Parser {
                 let captures = PLAY_SECTION_BASE_REGEX.captures(&self.input_buffer);
                 if let Ok(Some(captures)) = captures {
                     let base_match = captures.name("base").unwrap();
-                    let base = base_match.as_str().parse::<Base>().unwrap();
+                    let base = base_match.as_str().trim().parse::<Base>().unwrap();
 
                     self.game_builder.play_builder.set_base(base);
 
@@ -1149,7 +1147,7 @@ impl Parser {
 
                 GameSection::Plays(PlaySection::Fielders(FieldersSection::Tag)) => format!("^{}", PLAY_SECTION_FIELDERS_TAG).replace("[", r"\[").replace("]", r"\]"),
                 GameSection::Plays(PlaySection::Fielders(FieldersSection::Name)) => PLAYER_NAME_REGEX.as_str().to_string(),
-                GameSection::Plays(PlaySection::Fielders(FieldersSection::CommaSpace)) => format!("^{}", COMMA_SPACE).replace("[", r"\[").replace("]", r"\]"),
+                GameSection::Plays(PlaySection::Fielders(FieldersSection::CommaSpace)) => format!("^{}", COMMA_SPACE),
 
                 GameSection::Plays(PlaySection::Runner()) => PLAY_SECTION_RUNNER_REGEX.as_str().to_string(),
                 GameSection::Plays(PlaySection::ScoringRunner()) => PLAY_SECTION_SCORING_RUNNER_REGEX.as_str().to_string(),
@@ -1183,7 +1181,7 @@ impl Parser {
 
         let mut valid_regexes = vec![];
         for (current_regex, next_char) in current_regexes.iter().zip(next_chars.iter()) {
-            valid_regexes.push(format!("({}{})", current_regex, next_char).trim_end().to_string());
+            valid_regexes.push(format!("(({})({}))", current_regex, next_char).trim_end().to_string());
         }
 
         let joined = valid_regexes.join("|");
