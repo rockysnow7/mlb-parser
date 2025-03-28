@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-
 use pyo3::pyclass;
 use strum_macros::EnumIter;
 
