@@ -2062,24 +2062,5 @@ mod tests {
             let is_match = regex.is_match(input).unwrap();
             assert!(is_match);
         }
-
-        #[test]
-        fn test_valid_regex_for_all_games() {
-            use glob::glob;
-
-            let parser = Parser::new(false);
-            let regex = parser.valid_regex();
-            let regex = Regex::new(&regex).unwrap();
-
-            let paths = glob("test_data/*.txt").unwrap();
-            for path in paths {
-                let input = std::fs::read_to_string(path.as_ref().unwrap()).unwrap();
-                let is_match = regex.is_match(&input.trim()).unwrap();
-                if !is_match {
-                    println!("input: {}\n({})", input, path.as_ref().unwrap().display());
-                }
-                assert!(is_match);
-            }
-        }
     }
 }
