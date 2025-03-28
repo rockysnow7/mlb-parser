@@ -1202,12 +1202,12 @@ impl Parser {
         );
 
         let game_start = PLAY_SECTION_GAME_START.replace("[", r"\[").replace("]", r"\]");
-        let play_end = PLAY_SECTION_PLAY_END.replace("[", r"\[").replace("]", r"\]");
+        let game_end = PLAY_SECTION_GAME_END.replace("[", r"\[").replace("]", r"\]");
         let play_section_regex = format!(
             "{}\n({}\n)+{}",
             game_start,
             self.play_regex(),
-            play_end,
+            game_end,
         );
 
         format!(
@@ -2015,7 +2015,7 @@ mod tests {
 
         #[test]
         fn test_valid_regex_for_movement_from_home() {
-            let mut parser = Parser::new(false);
+            let parser = Parser::new(false);
             let regex = parser.movements_regex();
             let regex = Regex::new(&regex).unwrap();
 
