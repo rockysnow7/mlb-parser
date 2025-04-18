@@ -1138,7 +1138,7 @@ impl Parser {
 
 #[pymethods]
 impl Parser {
-    #[staticmethod]
+    #[new]
     fn new(print_debug: bool) -> Self {
         Self {
             input_buffer: String::new(),
